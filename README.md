@@ -416,3 +416,5 @@ Issues and pull requests are welcome. For a useful contribution:
 Quantx is under active development. Some workspace preferences are browser-local, market-data availability depends on external services, and AI coaching features beyond the help guide are planned.
 
 This project is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for the full terms and copyright notice.
+
+<p align="center"><strong>Built for Indian retail traders who want to learn the market before the market teaches them.</strong> 📈🇮🇳</p>
