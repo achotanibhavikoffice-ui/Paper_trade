@@ -423,10 +423,6 @@ export function TradingViewCandleChart({ symbol, quote }: { symbol: string; quot
     low: isDaily(interval) ? Number(quote.low) || Number(quote.last_price) : Number(quote.last_price),
     close: Number(quote.last_price),
   } : lastBar);
-  const sourceLabel = demoQuote ? 'DATA' : quote ? 'LIVE' : 'WAITING';
-  const historyLabel = historyMode === 'loading' ? 'LOADING HISTORY'
-    : realSeries ? (realSeries.stale ? 'CACHED HISTORY' : 'REAL HISTORY')
-    : historyMode === 'fallback' ? 'ILLUSTRATIVE (BSE / UNINDEXED)' : 'ILLUSTRATIVE';
   const footnote = historyMode === 'loading' ? 'Loading NSE price history…'
     : realSeries
       ? `NSE daily closes via IndianAPI through ${formatDay(realSeries.lastDate)} · candles drawn close-to-close${demoQuote ? ' · practice quotes not merged' : quote ? ' · latest bar from market feed' : ''}`
@@ -486,7 +482,7 @@ export function TradingViewCandleChart({ symbol, quote }: { symbol: string; quot
       </div>
       <div ref={host} className="trade-live-chart tv-chart-canvas" />
       {!hasData && <div className="trade-chart-empty"><Activity size={16} /><span>{historyMode === 'loading' ? `Loading ${symbol} price history…` : `Waiting for ${symbol} market data…`}</span></div>}
-      <div className="tv-chart-foot"><span>Powered by TradingView Lightweight Charts</span><span>{footnote}</span></div>
+      <div className="tv-chart-foot"><span>Powered by TradingView Lightweight Charts</span><span>{historyNotice ? `${historyNotice} · ${footnote}` : footnote}</span></div>
     </section>
   );
 }

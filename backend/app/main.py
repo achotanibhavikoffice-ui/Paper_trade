@@ -19,6 +19,7 @@ from app.routes.news import router as news_router
 from app.routes.what_if import router as what_if_router
 from app.routes.market_insights import router as market_insights_router
 from app.routes.recovery import router as recovery_router
+from app.routes.support import router as support_router
 from app.routes.trading import router as trading_router
 from app.services.market_data import market_data
 from app.services.indian_api import indian_api
@@ -264,6 +265,7 @@ app.include_router(news_router)
 app.include_router(what_if_router)
 app.include_router(market_insights_router)
 app.include_router(recovery_router)
+app.include_router(support_router)
 
 
 @app.get("/api/health")

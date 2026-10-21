@@ -26,6 +26,44 @@ class RegisterInput(BaseModel):
         return value.strip().lower()
 
 
+class SupportChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=1200)
+
+    @field_validator("content")
+    @classmethod
+    def trim_chat_content(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Enter a message.")
+        return value
+
+
+class SupportChatInput(BaseModel):
+    message: str = Field(min_length=1, max_length=1200)
+    history: list[SupportChatMessage] = Field(default_factory=list, max_length=12)
+    page: str = Field(default="/dashboard", max_length=120)
+
+    @field_validator("message")
+    @classmethod
+    def trim_support_message(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Enter a message.")
+        return value
+
+
+class SupportChatAction(BaseModel):
+    label: str
+    path: str
+
+
+class SupportChatResponse(BaseModel):
+    answer: str
+    mode: Literal["ai", "guide"]
+    actions: list[SupportChatAction] = Field(default_factory=list)
+
+
 class LoginInput(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=72)

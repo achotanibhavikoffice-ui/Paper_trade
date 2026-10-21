@@ -56,6 +56,8 @@ export type Scenario = {
 };
 export type MarketStatus = { enabled: boolean; connected: boolean; quote_count: number; last_update: string | null; mode: 'demo' | 'full' | 'hybrid' | string; order_execution: string; quote_max_age_seconds?: number };
 export type PortfolioSummary = { cash_balance: string; reserved_cash: string; market_value: string; equity: string; realized_pnl: string; unrealized_pnl: string; total_pnl: string; open_positions: number; open_orders: number; stress_mode: boolean };
+export type SupportChatMessage = { role: 'user' | 'assistant'; content: string };
+export type SupportChatReply = { answer: string; mode: 'ai' | 'guide'; actions: { label: string; path: string }[] };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -67,6 +69,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) throw new Error(payload.error ?? detail ?? `Request failed (${response.status}).`);
   return payload as T;
 }
+
+export const supportApi = {
+  chat: (message: string, history: SupportChatMessage[], page: string) =>
+    request<SupportChatReply>('/support/chat', { method: 'POST', body: JSON.stringify({ message, history, page }) }),
+};
 
 export const authApi = {
   me: () => request<{ user: User }>('/auth/me'),

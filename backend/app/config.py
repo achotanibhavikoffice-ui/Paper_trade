@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     marketaux_stale_ttl_seconds: int = 86400
     marketaux_timeout_seconds: float = 20.0
     marketaux_nse_symbol_suffix: str = ".NS"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-6-luna"
     # IndianAPI (stock.indianapi.in) reference data: daily history, movers, company profile.
     indian_api_key: str = ""
     indian_api_base_url: str = "https://stock.indianapi.in"
