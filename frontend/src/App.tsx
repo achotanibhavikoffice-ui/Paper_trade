@@ -270,7 +270,7 @@ export default function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <SettingsPage />
+            <SettingsPage user={user!} onAuth={setUser} />
           </ProtectedRoute>
         }
       />

@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from decimal import Decimal
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Account, CashLedger, Instrument, Order, Position, User
+from app.models import Account, CashLedger, Instrument, Order, OrderEvent, PortfolioSafePoint, Position, ScenarioRun, User
 from app.routes.auth import create_initial_account_for_user, get_current_user
 from app.schemas import (
     AccountResponse,
+    AccountResetInput,
+    FeeSettingsInput,
     CapitalSetupInput,
     InstrumentResponse,
     LedgerEntryResponse,
@@ -15,6 +17,101 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/api", tags=["account"])
+
+
+@router.get("/account/fee-settings")
+def get_fee_settings(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict[str, str | None]:
+    account = db.scalar(select(Account).where(Account.user_id == user.id))
+    if account is None:
+        account = create_initial_account_for_user(user, db)
+    return {
+        "commission_per_order": str(account.commission_per_order) if account.commission_per_order is not None else None,
+        "regulatory_fee_percent": str(account.regulatory_fee_percent),
+    }
+
+
+@router.put("/account/fee-settings")
+def update_fee_settings(
+    payload: FeeSettingsInput,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, str | None]:
+    account = db.scalar(select(Account).where(Account.user_id == user.id).with_for_update())
+    if account is None:
+        account = create_initial_account_for_user(user, db)
+    account.commission_per_order = payload.commission_per_order.quantize(Decimal("0.01")) if payload.commission_per_order is not None else None
+    account.regulatory_fee_percent = payload.regulatory_fee_percent.quantize(Decimal("0.001"))
+    db.commit()
+    return {
+        "commission_per_order": str(account.commission_per_order) if account.commission_per_order is not None else None,
+        "regulatory_fee_percent": str(account.regulatory_fee_percent),
+    }
+
+
+@router.put("/account/reset-balance", response_model=AccountResponse)
+def reset_account_balance(
+    payload: AccountResetInput,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AccountResponse:
+    account = db.scalar(select(Account).where(Account.user_id == user.id).with_for_update())
+    if account is None:
+        raise HTTPException(status_code=404, detail="Practice account not found.")
+    balance = payload.balance.quantize(Decimal("0.01"))
+    if balance < account.reserved_cash:
+        raise HTTPException(status_code=422, detail="The selected balance cannot be lower than cash reserved by open orders.")
+    delta = balance - account.cash_balance
+    account.cash_balance = balance
+    if delta:
+        db.add(CashLedger(
+            account_id=account.id,
+            entry_type="RESET",
+            amount=delta,
+            balance_after=balance,
+            description="Practice cash balance reset",
+        ))
+    db.commit()
+    db.refresh(account)
+    return AccountResponse.model_validate(account)
+
+
+@router.post("/account/reset", response_model=AccountResponse)
+def reset_practice_account(
+    payload: AccountResetInput,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AccountResponse:
+    account = db.scalar(select(Account).where(Account.user_id == user.id).with_for_update())
+    if account is None:
+        raise HTTPException(status_code=404, detail="Practice account not found.")
+    balance = payload.balance.quantize(Decimal("0.01"))
+
+    # Clear the simulation's dependent activity in FK-safe order. The user and
+    # practice account identity remain intact; performance ratios derive from
+    # the now-empty trade history.
+    db.execute(delete(OrderEvent).where(OrderEvent.account_id == account.id))
+    db.execute(delete(Order).where(Order.account_id == account.id))
+    db.execute(delete(Position).where(Position.account_id == account.id))
+    db.execute(delete(ScenarioRun).where(ScenarioRun.account_id == account.id))
+    db.execute(delete(PortfolioSafePoint).where(PortfolioSafePoint.account_id == account.id))
+    db.execute(delete(CashLedger).where(CashLedger.account_id == account.id))
+
+    account.initial_capital = balance
+    account.cash_balance = balance
+    account.reserved_cash = Decimal("0.00")
+    account.capital_configured = True
+    account.stress_mode = False
+    db.add(CashLedger(
+        account_id=account.id,
+        entry_type="INITIAL_CAPITAL",
+        amount=balance,
+        balance_after=balance,
+        description="Initial virtual capital grant",
+        idempotency_key=f"INIT_CAPITAL_{user.id}",
+    ))
+    db.commit()
+    db.refresh(account)
+    return AccountResponse.model_validate(account)
 
 
 def _has_trading_activity(db: Session, account: Account) -> bool:

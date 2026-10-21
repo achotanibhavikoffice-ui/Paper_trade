@@ -68,7 +68,7 @@ class PaperTradingEngine:
         if payload.order_type == "MARKET" and quote and self._quote_is_stale(quote) and not allow_stale_market:
             raise HTTPException(409, "The latest market depth is stale. Wait for a fresh market update before placing a market order.")
         self._validate_stop_reference(payload.side, payload.order_type, payload.limit_price, payload.trigger_price, quote)
-        reserve = self._reserve_estimate(payload, quote)
+        reserve = self._reserve_estimate(payload, quote, account)
         if payload.side == "BUY" and money(account.cash_balance - account.reserved_cash) < reserve:
             raise HTTPException(422, "Insufficient available paper-trading funds for this order.")
         if payload.side == "SELL" and payload.product == "CNC":
@@ -127,7 +127,7 @@ class PaperTradingEngine:
             limit_price=payload.limit_price, trigger_price=payload.trigger_price,
             validity=payload.validity, idempotency_key=order.idempotency_key or "modify-order-key",
         )
-        new_reserve = self._reserve_estimate(simulated, self._quotes.get(instrument.symbol)) if order.side == "BUY" else ZERO
+        new_reserve = self._reserve_estimate(simulated, self._quotes.get(instrument.symbol), account) if order.side == "BUY" else ZERO
         delta = new_reserve - order.reserved_amount
         if delta > ZERO and money(account.cash_balance - account.reserved_cash) < delta:
             raise HTTPException(422, "Insufficient available paper-trading funds for the modified order.")
@@ -252,7 +252,7 @@ class PaperTradingEngine:
                     gross = money(px * fill_qty)
                     reserve_slice = min(order.reserved_amount, money(order.reserved_amount * Decimal(fill_qty) / Decimal(max(1, order.quantity - order.filled_quantity)))) if order.side == "BUY" else ZERO
                     next_sequence = (db.scalar(select(func.count(Trade.id)).where(Trade.order_id == order.id)) or 0) + 1
-                    fees = self._estimate_charges(order, gross, next_sequence)
+                    fees = self._estimate_charges(order, gross, next_sequence, account)
                     if order.side == "BUY" and money(account.cash_balance - gross - fees["total"]) < money(account.reserved_cash - reserve_slice):
                         break
                     self._apply_fill(db, account, order, fill_qty, px, gross)
@@ -283,7 +283,7 @@ class PaperTradingEngine:
                       quantity=quantity, price=price, side=order.side, product=order.product)
         db.add(trade)
         db.flush()
-        fees = self._estimate_charges(order, gross, sequence)
+        fees = self._estimate_charges(order, gross, sequence, account)
         db.add(TradeCharge(trade_id=trade.id, **fees))
         position = db.scalar(select(Position).where(
             Position.account_id == account.id, Position.instrument_id == order.instrument_id,
@@ -337,9 +337,11 @@ class PaperTradingEngine:
                     {"trade_id": str(trade.id), "quantity": quantity, "price": str(price), "charges": str(fees["total"])})
 
     @staticmethod
-    def _estimate_charges(order: Order, gross: Decimal, sequence: int) -> dict[str, Decimal]:
+    def _estimate_charges(order: Order, gross: Decimal, sequence: int, account: Account | None = None) -> dict[str, Decimal]:
         exchange = money(gross * Decimal("0.0000325"))  # NSE 0.00325%
         sebi = money(gross * Decimal("0.000001"))      # SEBI Rs 10 per crore
+        if account:
+            sebi += money(gross * Decimal(account.regulatory_fee_percent or 0) / Decimal(100))
         
         if order.product == "CNC":
             brokerage = ZERO
@@ -353,6 +355,8 @@ class PaperTradingEngine:
             stt = money(gross * Decimal("0.00025")) if order.side == "SELL" else ZERO # 0.025% STT on sell
             stamp = money(gross * Decimal("0.00003")) if order.side == "BUY" else ZERO # 0.003% stamp on buy
             
+        if account and account.commission_per_order is not None:
+            brokerage = money(account.commission_per_order) if sequence == 1 else ZERO
         gst = money((brokerage + exchange + sebi) * Decimal("0.18"))
         total = money(brokerage + exchange + sebi + stt + stamp + gst)
         return {"brokerage": money(brokerage), "exchange_fee": exchange, "sebi_fee": sebi,
@@ -386,7 +390,7 @@ class PaperTradingEngine:
         order.reserved_amount = ZERO
 
     @staticmethod
-    def _reserve_estimate(payload: OrderCreateInput, quote: dict[str, Any] | None) -> Decimal:
+    def _reserve_estimate(payload: OrderCreateInput, quote: dict[str, Any] | None, account: Account | None = None) -> Decimal:
         if payload.side != "BUY":
             return ZERO
         if payload.limit_price:
@@ -401,8 +405,11 @@ class PaperTradingEngine:
         ratio = max(Decimal(settings.paper_stt_delivery_rate) + Decimal(settings.paper_stamp_delivery_rate),
                     Decimal(settings.paper_stt_intraday_sell_rate) + Decimal(settings.paper_stamp_intraday_rate))
         ratio += Decimal(settings.paper_exchange_fee_rate) + Decimal(settings.paper_sebi_fee_rate)
+        if account:
+            ratio += Decimal(account.regulatory_fee_percent or 0) / Decimal(100)
         ratio *= Decimal(1) + Decimal(settings.paper_gst_rate)
-        return money(gross * (Decimal(1) + ratio) + Decimal(settings.paper_brokerage_per_order))
+        brokerage = account.commission_per_order if account and account.commission_per_order is not None else Decimal(settings.paper_brokerage_per_order)
+        return money(gross * (Decimal(1) + ratio) + Decimal(brokerage))
 
     @staticmethod
     def _validate_order(instrument: Instrument, side: str, product: str, order_type: str, quantity: int,

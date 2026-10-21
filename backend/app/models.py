@@ -64,6 +64,8 @@ class Account(Base):
     capital_configured: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="ACTIVE")
     stress_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    commission_per_order: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    regulatory_fee_percent: Mapped[Decimal] = mapped_column(Numeric(8, 6), nullable=False, server_default="0.000000")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 

@@ -69,6 +69,8 @@ def migrate_trading_schema() -> None:
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS reserved_cash NUMERIC(14,2) NOT NULL DEFAULT 0.00",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS capital_configured BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS stress_mode BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS commission_per_order NUMERIC(10,2) NULL",
+        "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS regulatory_fee_percent NUMERIC(8,6) NOT NULL DEFAULT 0.000000",
         "ALTER TABLE instruments ADD COLUMN IF NOT EXISTS provider_token INTEGER NULL",
         "ALTER TABLE instruments ADD COLUMN IF NOT EXISTS provider_exchange VARCHAR(10) NULL",
         "ALTER TABLE instruments ADD COLUMN IF NOT EXISTS provider_exchange_code INTEGER NULL",
