@@ -1,6 +1,6 @@
-# Tradeo — Frontend Architecture & Page Map
+# Quantx — Frontend Architecture & Page Map
 
-This document defines the frontend application structure, route mapping, shared components, API boundaries, and team development guidelines for Tradeo.
+This document defines the frontend application structure, route mapping, shared components, API boundaries, and team development guidelines for Quantx.
 
 ---
 

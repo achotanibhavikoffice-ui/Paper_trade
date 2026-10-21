@@ -226,7 +226,7 @@ INSERT INTO accounts (id, user_id, account_number, account_type, currency, initi
 VALUES (
   '00000000-0000-4000-a000-000000000002',
   '00000000-0000-4000-a000-000000000001',
-  'TRADEO-10000001',
+  'QUANTX-10000001',
   'PAPER',
   'INR',
   100000.00,

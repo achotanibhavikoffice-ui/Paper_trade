@@ -19,7 +19,7 @@ export function DashboardPage({ user }: { user: User | null }) {
   const [marketStatusUnavailable, setMarketStatusUnavailable] = useState(false);
   const [selected, setSelected] = useState('TATASTEEL');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [product, setProduct] = useState<'MIS' | 'CNC'>((localStorage.getItem('tradeo_default_product') as 'MIS' | 'CNC') || 'MIS');
+  const [product, setProduct] = useState<'MIS' | 'CNC'>((localStorage.getItem('quantx_default_product') as 'MIS' | 'CNC') || 'MIS');
   const [quantity, setQuantity] = useState('1');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -67,7 +67,7 @@ export function DashboardPage({ user }: { user: User | null }) {
     event.preventDefault();
     if (!selectedInstrument || !canSubmitOrder) return;
 
-    const confirm = localStorage.getItem('tradeo_confirm_orders') !== 'false';
+    const confirm = localStorage.getItem('quantx_confirm_orders') !== 'false';
     if (confirm && !window.confirm(`Are you sure you want to ${side} ${quantity} shares of ${selectedInstrument.symbol}?`)) {
       return;
     }

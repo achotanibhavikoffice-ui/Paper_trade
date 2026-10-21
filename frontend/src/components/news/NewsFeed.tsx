@@ -14,7 +14,7 @@ const sentimentTabs: { value: SentimentFilter; label: string }[] = [
 ];
 
 export interface NewsFeedProps {
-  /** Company mode: fixed to one Tradeo symbol; hides ticker/keyword filters. */
+  /** Company mode: fixed to one Quantx symbol; hides ticker/keyword filters. */
   symbol?: string;
   exchange?: string;
   companyName?: string;
@@ -224,7 +224,7 @@ export function NewsFeed({ symbol, exchange, companyName }: NewsFeedProps) {
 
       <p className="mt-6 flex items-start gap-2 text-[11px] leading-relaxed text-slate-500">
         <Info size={13} className="mt-0.5 shrink-0" />
-        News and sentiment are supplied by Marketaux and scored automatically per company. Headlines are not verified by Tradeo and may
+        News and sentiment are supplied by Marketaux and scored automatically per company. Headlines are not verified by Quantx and may
         include rumours or unconfirmed reports — always check the original source. Sentiment does not predict price movement and is not
         investment advice.
       </p>

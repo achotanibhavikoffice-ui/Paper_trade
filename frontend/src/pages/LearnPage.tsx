@@ -58,7 +58,7 @@ export const sampleLessons: Lesson[] = [
     key_takeaways: [
       'MIS positions must be closed before 3:20 PM IST on the same trading day.',
       'CNC orders represent long-term portfolio delivery holdings.',
-      'Tradeo provides separate workspace tabs for MIS and CNC management.',
+      'Quantx provides separate workspace tabs for MIS and CNC management.',
     ],
     quiz: {
       question: 'What happens to open MIS positions at 3:20 PM IST?',
@@ -179,7 +179,7 @@ export function LearnPage() {
     <>
       <PageHeader
         title="Learning Modules"
-        eyebrow="TRADEO ACADEMY"
+        eyebrow="QUANTX ACADEMY"
         description="Master stock market mechanics, order types, and risk management with 60-second lessons."
         breadcrumbs={[{ label: 'Learn' }]}
       />

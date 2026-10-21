@@ -139,7 +139,7 @@ def get_company_news(
     limit: int | None = Query(default=None, ge=1, le=100),
     _user: User = Depends(get_current_user),
 ):
-    """News mentioning a single company. Pass ``exchange=NSE`` for Tradeo (NSE) symbols."""
+    """News mentioning a single company. Pass ``exchange=NSE`` for Quantx (NSE) symbols."""
     result = _run(
         symbols=symbol,
         exchange=exchange,

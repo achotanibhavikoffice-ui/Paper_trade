@@ -237,7 +237,7 @@ export function MarketStressPage() {
         </div>
       </div>
 
-      {/* Main Control Console & Tradeo VIX Meter */}
+      {/* Main Control Console & Quantx VIX Meter */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Control Panel */}
         <div className="trade-panel space-y-5">
@@ -335,12 +335,12 @@ export function MarketStressPage() {
           </div>
         </div>
 
-        {/* Tradeo VIX Fear Index Meter */}
+        {/* Quantx VIX Fear Index Meter */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white/80 p-5 space-y-4 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2">
               <BarChart3 size={18} className="text-amber-600" />
-              <h3 className="text-sm font-semibold text-black">Tradeo VIX Fear Index Meter</h3>
+              <h3 className="text-sm font-semibold text-black">Quantx VIX Fear Index Meter</h3>
             </div>
             <span className={`px-2.5 py-1 rounded-full border text-xs font-mono font-bold ${vixColorClass}`}>
               VIX: {vixValue.toFixed(1)}

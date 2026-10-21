@@ -26,10 +26,10 @@ export function ProfileSettingsPage({ user, onAuth }: { user: User; onAuth: (use
 
   // Settings preferences state
   const [defaultProduct, setDefaultProduct] = useState<'MIS' | 'CNC'>(
-    (localStorage.getItem('tradeo_default_product') as 'MIS' | 'CNC') || 'MIS'
+    (localStorage.getItem('quantx_default_product') as 'MIS' | 'CNC') || 'MIS'
   );
   const [confirmOrders, setConfirmOrders] = useState(
-    localStorage.getItem('tradeo_confirm_orders') !== 'false'
+    localStorage.getItem('quantx_confirm_orders') !== 'false'
   );
 
   const joined = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(user.created_at));
@@ -149,13 +149,13 @@ export function ProfileSettingsPage({ user, onAuth }: { user: User; onAuth: (use
                   </div>
                   <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200">
                     <button
-                      onClick={() => { setDefaultProduct('MIS'); localStorage.setItem('tradeo_default_product', 'MIS'); }}
+                      onClick={() => { setDefaultProduct('MIS'); localStorage.setItem('quantx_default_product', 'MIS'); }}
                       className={`px-3 py-1 rounded font-semibold transition-colors ${defaultProduct === 'MIS' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
                       MIS Intraday
                     </button>
                     <button
-                      onClick={() => { setDefaultProduct('CNC'); localStorage.setItem('tradeo_default_product', 'CNC'); }}
+                      onClick={() => { setDefaultProduct('CNC'); localStorage.setItem('quantx_default_product', 'CNC'); }}
                       className={`px-3 py-1 rounded font-semibold transition-colors ${defaultProduct === 'CNC' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
                       CNC Delivery
@@ -169,7 +169,7 @@ export function ProfileSettingsPage({ user, onAuth }: { user: User; onAuth: (use
                     <span className="text-slate-500">Ask for confirmation before submitting practice orders</span>
                   </div>
                   <button
-                    onClick={() => { setConfirmOrders(!confirmOrders); localStorage.setItem('tradeo_confirm_orders', (!confirmOrders).toString()); }}
+                    onClick={() => { setConfirmOrders(!confirmOrders); localStorage.setItem('quantx_confirm_orders', (!confirmOrders).toString()); }}
                     className={`px-3 py-1 rounded font-semibold transition-colors ${confirmOrders ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-800'}`}
                   >
                     {confirmOrders ? 'Enabled' : 'Disabled'}

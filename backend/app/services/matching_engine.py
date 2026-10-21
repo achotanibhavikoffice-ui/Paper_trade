@@ -12,7 +12,7 @@ from app.models import Account, CashLedger, Instrument, Order, OrderFill, Positi
 from app.services.charge_engine import calculate_trade_charges, quantize_money
 from app.services.market_data import market_store
 
-logger = logging.getLogger("tradeo.matching_engine")
+logger = logging.getLogger("quantx.matching_engine")
 
 
 def validate_order_inputs(

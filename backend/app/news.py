@@ -20,7 +20,7 @@ from typing import Any, Callable
 
 from app.config import settings
 
-logger = logging.getLogger("tradeo.news")
+logger = logging.getLogger("quantx.news")
 
 SENTIMENT_TYPES = ("positive", "negative", "neutral")
 _MAX_CACHE_ENTRIES = 256
@@ -121,7 +121,7 @@ def _normalize_entity(raw: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def normalize_article(raw: dict[str, Any], requested_symbols: tuple[str, ...] = ()) -> dict[str, Any] | None:
-    """Convert a provider article into Tradeo's schema; ``None`` if it lacks a title or safe URL."""
+    """Convert a provider article into Quantx's schema; ``None`` if it lacks a title or safe URL."""
     title = _clean_text(raw.get("title"))
     url = _safe_http_url(raw.get("url"))
     if title is None or url is None:
@@ -164,7 +164,7 @@ def _matches_sentiment(article: dict[str, Any], wanted: str) -> bool:
 
 def _http_get(url: str, timeout: float) -> tuple[int, bytes]:
     """Single GET against the configured provider URL. Isolated so tests can mock it."""
-    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Tradeo/0.1"})
+    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "Quantx/0.1"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - fixed https endpoint
             return response.status, response.read(2_000_000)

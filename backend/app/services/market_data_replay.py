@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any
 
 from app.services.market_data import market_store, TICKS_RECORDER_PATH
 
-logger = logging.getLogger("tradeo.replay")
+logger = logging.getLogger("quantx.replay")
 
 DEFAULT_SAMPLE_TICKS: List[Dict[str, Any]] = [
     {"symbol": "RELIANCE", "token": 2885, "price": 1428.60, "previous_close": 1402.80, "high": 1445.00, "low": 1410.20, "volume": 4200000},

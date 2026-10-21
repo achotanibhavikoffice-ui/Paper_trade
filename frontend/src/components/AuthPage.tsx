@@ -31,10 +31,10 @@ export function AuthPage({ mode, onAuth }: { mode: 'login' | 'register'; onAuth:
           <button className="button button-primary auth-submit" disabled={busy}>{busy ? 'Please wait…' : register ? 'Create your account' : 'Sign in'} <ArrowUpRight size={16} /></button>
         </form>
         {!register && <p className="forgot-link-row"><Link to="/forgot-password">Forgot your password?</Link></p>}
-        <p className="auth-switch">{register ? 'Already have an account?' : 'New to Tradeo?'} <Link to={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create account'}</Link></p>
+        <p className="auth-switch">{register ? 'Already have an account?' : 'New to Quantx?'} <Link to={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create account'}</Link></p>
         <div className="secure-note"><ShieldCheck size={16} /><span>Secure sign-in · Simulated trading only</span></div>
       </div>
-      <footer className="auth-footer"><span>© 2026 Tradeo</span><span>Practice thoughtfully. Trade confidently.</span></footer>
+      <footer className="auth-footer"><span>© 2026 Quantx</span><span>Practice thoughtfully. Trade confidently.</span></footer>
     </section>
     <aside className="auth-aside">
       <div className="aside-orbit orbit-one" /><div className="aside-orbit orbit-two" />

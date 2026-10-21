@@ -6,7 +6,7 @@ import { Brand } from './Brand';
 import './AccountPages.css';
 
 function RecoveryLayout({ children }: { children: ReactNode }) {
-  return <main className="recovery-page"><header className="account-nav"><Brand /><Link to="/login" className="account-back"><ArrowLeft size={17} /> Back to sign in</Link></header><section className="recovery-card">{children}<p className="recovery-security"><ShieldCheck size={16} /> Reset links are private, single-use, and expire after 30 minutes.</p></section><footer className="recovery-footer">© 2026 Tradeo <span>·</span> Paper trading only</footer></main>;
+  return <main className="recovery-page"><header className="account-nav"><Brand /><Link to="/login" className="account-back"><ArrowLeft size={17} /> Back to sign in</Link></header><section className="recovery-card">{children}<p className="recovery-security"><ShieldCheck size={16} /> Reset links are private, single-use, and expire after 30 minutes.</p></section><footer className="recovery-footer">© 2026 Quantx <span>·</span> Paper trading only</footer></main>;
 }
 
 export function ForgotPasswordPage() {
@@ -32,7 +32,7 @@ export function ForgotPasswordPage() {
     }
   }
 
-  return <RecoveryLayout><span className="account-eyebrow"><Mail size={16} /> ACCOUNT RECOVERY</span><h1>Forgot your password?</h1><p className="recovery-description">Enter the email address for your Tradeo account. If it matches an account, we’ll send a one-time password reset link.</p><form className="recovery-form" onSubmit={submit}><label>Email address<input type="email" autoComplete="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required maxLength={254} /></label>{message && <div className="recovery-success" role="status"><Check size={18} /><span>{message}{import.meta.env.DEV && <small>For local development, check the backend terminal for the reset link.</small>}</span></div>}{error && <p className="account-error" role="alert">{error}</p>}<button className="account-save recovery-submit" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'} <ArrowRight size={17} /></button></form><p className="recovery-switch">Remember your password? <Link to="/login">Sign in</Link></p></RecoveryLayout>;
+  return <RecoveryLayout><span className="account-eyebrow"><Mail size={16} /> ACCOUNT RECOVERY</span><h1>Forgot your password?</h1><p className="recovery-description">Enter the email address for your Quantx account. If it matches an account, we’ll send a one-time password reset link.</p><form className="recovery-form" onSubmit={submit}><label>Email address<input type="email" autoComplete="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required maxLength={254} /></label>{message && <div className="recovery-success" role="status"><Check size={18} /><span>{message}{import.meta.env.DEV && <small>For local development, check the backend terminal for the reset link.</small>}</span></div>}{error && <p className="account-error" role="alert">{error}</p>}<button className="account-save recovery-submit" disabled={busy}>{busy ? 'Sending…' : 'Send reset link'} <ArrowRight size={17} /></button></form><p className="recovery-switch">Remember your password? <Link to="/login">Sign in</Link></p></RecoveryLayout>;
 }
 
 export function ResetPasswordPage() {

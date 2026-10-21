@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const KEY = 'tradeo.watchlist.v1';
+const KEY = 'quantx.watchlist.v1';
 const MAX_WATCHLIST_SYMBOLS = 50;
 function readWatchlist(): string[] {
   try {

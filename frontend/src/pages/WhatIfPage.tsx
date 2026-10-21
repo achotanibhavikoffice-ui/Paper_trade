@@ -999,7 +999,7 @@ export function WhatIfPage() {
                   </div>
                 ) : (
                   <div className="p-6 text-center text-xs text-black bg-slate-50 rounded-xl border border-slate-200">
-                    No active positions found in portfolio. Open positions in Tradeo to run holdings-level stress testing.
+                    No active positions found in portfolio. Open positions in Quantx to run holdings-level stress testing.
                   </div>
                 )}
               </div>

@@ -1,17 +1,17 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: tradeo-postgres
+    container_name: quantx-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-tradeo}
-      POSTGRES_USER: ${POSTGRES_USER:-tradeo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tradeo_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-quantx}
+      POSTGRES_USER: ${POSTGRES_USER:-quantx}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quantx_local_only}
     ports:
       # 5433 avoids clashing with a native PostgreSQL service on Windows.
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
-      - tradeo_pgdata:/var/lib/postgresql/data
+      - quantx_pgdata:/var/lib/postgresql/data
       - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -23,12 +23,12 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: tradeo-api
+    container_name: quantx-api
     restart: unless-stopped
     environment:
       APP_ENV: development
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tradeo}:${POSTGRES_PASSWORD:-tradeo_local_only}@db:5432/${POSTGRES_DB:-tradeo}
-      JWT_SECRET: ${JWT_SECRET:-tradeo-local-docker-jwt-secret-change-this-before-production}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-quantx}:${POSTGRES_PASSWORD:-quantx_local_only}@db:5432/${POSTGRES_DB:-quantx}
+      JWT_SECRET: ${JWT_SECRET:-quantx-local-docker-jwt-secret-change-this-before-production}
       FRONTEND_ORIGIN: http://localhost:5173
       SESSION_COOKIE_SECURE: "false"
       MAIL_BACKEND: console
@@ -70,7 +70,7 @@ services:
       dockerfile: Dockerfile
     environment:
       VITE_DEV_PROXY_TARGET: http://backend:4000
-    container_name: tradeo-web
+    container_name: quantx-web
     restart: unless-stopped
     ports:
       - "5173:5173"
@@ -79,12 +79,12 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: tradeo-redis
+    container_name: quantx-redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - tradeo_redisdata:/data
+      - quantx_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -92,5 +92,5 @@ services:
       retries: 10
 
 volumes:
-  tradeo_pgdata:
-  tradeo_redisdata:
+  quantx_pgdata:
+  quantx_redisdata:

@@ -28,8 +28,8 @@ def create_session_token(user_id: UUID, password_hash: str) -> str:
     payload = {
         "sub": str(user_id),
         "pwd": password_fingerprint(password_hash),
-        "iss": "tradeo-api",
-        "aud": "tradeo-web",
+        "iss": "quantx-api",
+        "aud": "quantx-web",
         "iat": now,
         "exp": now + timedelta(days=settings.session_lifetime_days),
     }
@@ -38,7 +38,7 @@ def create_session_token(user_id: UUID, password_hash: str) -> str:
 
 def read_session_identity(token: str) -> tuple[UUID, str] | None:
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"], issuer="tradeo-api", audience="tradeo-web")
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"], issuer="quantx-api", audience="quantx-web")
         return UUID(payload["sub"]), str(payload["pwd"])
     except (jwt.PyJWTError, KeyError, ValueError):
         return None

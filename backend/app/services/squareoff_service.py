@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import Account, Instrument, Order, Position
 from app.services.matching_engine import cancel_order, place_order
 
-logger = logging.getLogger("tradeo.squareoff")
+logger = logging.getLogger("quantx.squareoff")
 
 IST_TZ = zoneinfo.ZoneInfo("Asia/Kolkata")
 
