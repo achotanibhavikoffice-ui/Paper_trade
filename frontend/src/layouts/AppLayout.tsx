@@ -19,7 +19,6 @@ import {
   Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Star,
   UserRound,
   Wallet,
@@ -29,6 +28,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { accountApi, authApi, marketApi, type AccountInfo, type MarketStatus, type User } from '../api';
 import { Brand } from '../components/Brand';
 import { GlobalSearchModal } from '../components/common/GlobalSearchModal';
+import { HelpChatPanel } from '../components/HelpChatPanel';
 
 export interface AppLayoutProps {
   user: User | null;
@@ -59,7 +59,7 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
   const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [toast, setToast] = useState('');
+  const [helpOpen, setHelpOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
 
@@ -100,7 +100,7 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
       ? location.pathname === '/dashboard'
       : location.pathname.startsWith(item.path)
   );
-  const currentTitle = currentNavItem ? currentNavItem.label : 'Workspace';
+  const currentTitle = currentNavItem ? currentNavItem.label : location.pathname.startsWith('/stocks/') ? 'Stock details' : 'Workspace';
 
   return (
     <div className="app-shell">
@@ -154,7 +154,7 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
 
 
         <div className="side-bottom">
-          <button className="nav-link" onClick={() => setToast('Help center is available 24/7.')}>
+          <button className="nav-link" onClick={() => { setHelpOpen(true); setSidebarOpen(false); }}>
             <CircleHelp size={17} />
             <span>Help & support</span>
           </button>
@@ -305,17 +305,13 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
 
       {/* Global Search Modal */}
       <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-
-      {/* Toast Overlay */}
-      {toast && (
-        <div className="toast" role="status">
-          <Sparkles size={16} />
-          {toast}
-          <button onClick={() => setToast('')} aria-label="Dismiss">
-            <X size={14} />
-          </button>
-        </div>
-      )}
+      <HelpChatPanel
+        isOpen={helpOpen}
+        page={location.pathname}
+        pageTitle={currentTitle}
+        onClose={() => setHelpOpen(false)}
+        onNavigate={navigate}
+      />
 
       {/* Mobile Bottom Tabbar */}
       <div className="mobile-tabbar">
