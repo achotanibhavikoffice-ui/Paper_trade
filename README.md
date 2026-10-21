@@ -1,9 +1,16 @@
-# Paper_trade — Next-Gen Indian Market Paper Trading & Strategy Simulator
-
-[![Tech Stack](https://img.shields.io/badge/stack-React%20%7C%20TypeScript%20%7C%20FastAPI-087f72)](#-technology-stack)
-[![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#-project-status-and-license)
-[![Status](https://img.shields.io/badge/status-active%20development-blue)](#-project-status-and-license)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
+<div align="center">
+  <h1>Paper_trade — Next-Gen Indian Market Paper Trading &amp; Strategy Simulator</h1>
+  <p><em>A zero-risk workspace for learning Indian equities, practicing simulated orders, and understanding how execution costs affect a portfolio.</em></p>
+  <p>
+    <img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript-149eca?logo=react&logoColor=white" alt="React and TypeScript">
+    <img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+    <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+    <img src="https://img.shields.io/badge/Market-INR%20%7C%20NSE%20%7C%20BSE-087f72" alt="Indian market">
+    <a href="#-project-status-and-license"><img src="https://img.shields.io/badge/license-not%20specified-lightgrey" alt="License not specified"></a>
+    <a href="#-project-status-and-license"><img src="https://img.shields.io/badge/status-active%20development-blue" alt="Active development"></a>
+    <a href="#-contributing"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
+  </p>
+</div>
 
 **Paper_trade** is the repository name; **Quantx** is the application brand. Quantx is a practice workspace for Indian equities where learners can explore instruments, place simulated orders, and see how fills, fees, cash, positions, and profit and loss interact. It is designed to make the move from learning market concepts to practicing an order workflow without risking real funds.
 
@@ -11,9 +18,23 @@ The app combines a local paper-order engine with configurable brokerage assumpti
 
 > **Practice environment:** Balances, orders, fills, and positions in Quantx are simulated. Market data availability depends on configured providers and market sessions. This is educational software, not a broker or investment adviser.
 
-## Quick navigation
+## 📋 Table of contents
 
-[Features](#-platform-features) · [Architecture](#-architecture) · [Tech stack](#-technology-stack) · [Getting started](#-getting-started) · [Settings & simulation controls](#-settings--simulation-controls) · [AI roadmap](#-ai--analytics-roadmap) · [Screenshots](#-ui-showcase) · [Contributing](#-contributing)
+- [Platform features](#-platform-features)
+- [Architecture and order execution](#-architecture)
+- [Technology stack](#-technology-stack)
+- [Repository structure](#-repository-structure)
+- [Data sources](#-data-sources)
+- [Getting started](#-getting-started)
+- [Settings and simulation controls](#-settings--simulation-controls)
+- [API surface](#-api-surface)
+- [UI showcase](#-ui-showcase)
+- [AI and analytics roadmap](#-ai--analytics-roadmap)
+- [Checks and development](#-checks-and-development)
+- [Deployment](#-deployment)
+- [Security and market-data notes](#-security-and-market-data-notes)
+- [Contributing](#-contributing)
+- [Project status and license](#-project-status-and-license)
 
 ## ✨ Platform features
 
@@ -124,6 +145,18 @@ sequenceDiagram
 | Market integrations | 021 developer API, IndianAPI, Marketaux | Optional market feed, snapshots/reference data, and news |
 | AI & analytics | Built-in market/project knowledge; optional OpenAI Responses API | Quantx Guide answers and navigation help; advanced coaching remains on the roadmap |
 | Development & tests | Docker Compose, pytest, Vitest, Testing Library | Local multi-service environment and code checks |
+
+## 🌐 Data sources
+
+| Source | Used for | What to expect |
+| --- | --- | --- |
+| 021 developer API | Optional instrument synchronization and streaming market quotes/depth | Requires authorized credentials and an active provider session; Quantx does not submit orders to this API |
+| IndianAPI | Optional price snapshots, market movers, company details, and chart history | Periodic/cached reference data; snapshots are not a streaming order book |
+| Generated practice feed | Local quote and depth simulation | Synthetic data for exercising charts and the paper matcher; shown with a practice-data source label |
+| Marketaux | Optional financial-news results | Requires a server-side API token; responses may be cached or unavailable |
+| Quantx knowledge / optional OpenAI | In-app page help and market concept explanations | Built-in answers work without a key; generated answers require a backend-only OpenAI key |
+
+Provider settings are configured on the backend. Source badges and update times in the UI are the guide to whether a displayed value is a stream quote, a snapshot, or generated practice data.
 
 ## 📁 Repository structure
 
@@ -353,6 +386,12 @@ npm --prefix frontend test
 ```
 
 Tests do not verify access to 021, IndianAPI, Marketaux, SMTP, or OpenAI. Those integrations require valid credentials and their services to be reachable.
+
+## 🚢 Deployment
+
+The repository includes Dockerfiles and a Compose stack intended for local development. A production deployment needs an HTTPS frontend origin, a PostgreSQL database, a unique secret, private environment-managed credentials, and a configured SMTP sender for account recovery. Set `APP_ENV=production`, use `SESSION_COOKIE_SECURE=true`, and disable `DEMO_MARKET_DATA_ENABLED`; the API validates these production requirements at startup.
+
+The Compose database password, JWT defaults, console mail backend, and generated practice feed are local-development settings. Replace them before deploying. Configure live market providers only with credentials you are authorized to use, and verify data access and current market availability independently of the API health endpoint.
 
 ## 🔐 Security and market-data notes
 
