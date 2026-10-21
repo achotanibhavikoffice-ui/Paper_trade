@@ -1,0 +1,96 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tradeo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tradeo}
+      POSTGRES_USER: ${POSTGRES_USER:-tradeo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tradeo_local_only}
+    ports:
+      # 5433 avoids clashing with a native PostgreSQL service on Windows.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - tradeo_pgdata:/var/lib/postgresql/data
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: tradeo-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-tradeo}:${POSTGRES_PASSWORD:-tradeo_local_only}@db:5432/${POSTGRES_DB:-tradeo}
+      JWT_SECRET: ${JWT_SECRET:-tradeo-local-docker-jwt-secret-change-this-before-production}
+      FRONTEND_ORIGIN: http://localhost:5173
+      SESSION_COOKIE_SECURE: "false"
+      MAIL_BACKEND: console
+      MARKET_DATA_ENABLED: ${MARKET_DATA_ENABLED:-false}
+      DEMO_MARKET_DATA_ENABLED: ${DEMO_MARKET_DATA_ENABLED:-true}
+      MARKET_DATA_USERNAME: ${MARKET_DATA_USERNAME:-}
+      MARKET_DATA_PASSWORD: ${MARKET_DATA_PASSWORD:-}
+      MARKET_DATA_API_BASE_URL: ${MARKET_DATA_API_BASE_URL:-https://devapi.021.trade/api/developer-api/v1}
+      MARKET_DATA_WS_BASE_URL: ${MARKET_DATA_WS_BASE_URL:-wss://devapi.021.trade/api/developer/websocket/market}
+      MARKET_DATA_DEFAULT_SYMBOLS: ${MARKET_DATA_DEFAULT_SYMBOLS:-RELIANCE,TCS,HDFCBANK,INFY,ICICIBANK,SBIN}
+      MARKET_DATA_SYNC_ON_STARTUP: ${MARKET_DATA_SYNC_ON_STARTUP:-true}
+      MARKET_DATA_MAX_SUBSCRIPTIONS: ${MARKET_DATA_MAX_SUBSCRIPTIONS:-100}
+      REDIS_URL: redis://redis:6379/0
+      PAPER_BROKERAGE_PER_ORDER: ${PAPER_BROKERAGE_PER_ORDER:-0.00}
+      PAPER_EXCHANGE_FEE_RATE: ${PAPER_EXCHANGE_FEE_RATE:-0.0000325}
+      PAPER_SEBI_FEE_RATE: ${PAPER_SEBI_FEE_RATE:-0.000001}
+      PAPER_GST_RATE: ${PAPER_GST_RATE:-0.18}
+      PAPER_STT_DELIVERY_RATE: ${PAPER_STT_DELIVERY_RATE:-0.001}
+      PAPER_STT_INTRADAY_SELL_RATE: ${PAPER_STT_INTRADAY_SELL_RATE:-0.00025}
+      PAPER_STAMP_DELIVERY_RATE: ${PAPER_STAMP_DELIVERY_RATE:-0.00015}
+      PAPER_STAMP_INTRADAY_RATE: ${PAPER_STAMP_INTRADAY_RATE:-0.00003}
+      PAPER_STRESS_SPREAD_PERCENT: ${PAPER_STRESS_SPREAD_PERCENT:-0.005}
+      PAPER_STRESS_LIQUIDITY_FACTOR: ${PAPER_STRESS_LIQUIDITY_FACTOR:-0.5}
+      MARKET_QUOTE_MAX_AGE_SECONDS: ${MARKET_QUOTE_MAX_AGE_SECONDS:-120}
+      MARKETAUX_API_TOKEN: ${MARKETAUX_API_TOKEN:-}
+      MARKETAUX_MAX_LIMIT: ${MARKETAUX_MAX_LIMIT:-3}
+      MARKETAUX_CACHE_TTL_SECONDS: ${MARKETAUX_CACHE_TTL_SECONDS:-900}
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_DEV_PROXY_TARGET: http://backend:4000
+    container_name: tradeo-web
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: tradeo-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - tradeo_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tradeo_pgdata:
+  tradeo_redisdata:

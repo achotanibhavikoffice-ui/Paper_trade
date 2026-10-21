@@ -1,0 +1,11 @@
+# Ignore all large data recordings, market streams, and databases
+data/
+data/*
+*.jsonl
+*.jsonl.*
+*.parquet
+*.csv.gz
+recorded_market_ticks.jsonl
+quote_snapshots.json
+*.sqlite3
+*.db

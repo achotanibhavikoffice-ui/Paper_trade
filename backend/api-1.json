@@ -1,0 +1,764 @@
+{
+  "info": {
+    "title": "Indian Stock API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/ipo": {
+      "get": {
+        "summary": "Ipo Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "ipo_data_ipo_get"
+      }
+    },
+    "/news": {
+      "get": {
+        "summary": "News Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "news_data_news_get"
+      }
+    },
+    "/stock": {
+      "get": {
+        "summary": "Stock Details",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            },
+            "example": "Tata Steel",
+            "required": true
+          }
+        ],
+        "operationId": "stock_details_stock_get"
+      }
+    },
+    "/trending": {
+      "get": {
+        "summary": "Trending Stocks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "trending_stocks_trending_get"
+      }
+    },
+    "/statement": {
+      "get": {
+        "summary": "Statement Endpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "stats",
+            "schema": {
+              "type": "string",
+              "title": "Stats"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "statement_endpoint_statement_get"
+      }
+    },
+    "/commodities": {
+      "get": {
+        "summary": "Commodities Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "description": "Fetches commodity data from the API,",
+        "operationId": "commodities_data_commodities_get"
+      }
+    },
+    "/mutual_funds": {
+      "get": {
+        "summary": "Mutual Funds Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "mutual_funds_data_mutual_funds_get"
+      }
+    },
+    "/price_shockers": {
+      "get": {
+        "summary": "Price Shockers Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "price_shockers_data_price_shockers_get"
+      }
+    },
+    "/BSE_most_active": {
+      "get": {
+        "summary": "Bse Most Active Stocks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "BSE_most_active_stocks_BSE_most_active_get"
+      }
+    },
+    "/NSE_most_active": {
+      "get": {
+        "summary": "Nse Most Active Stocks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "NSE_most_active_stocks_NSE_most_active_get"
+      }
+    },
+    "/historical_data": {
+      "get": {
+        "summary": "Historical Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "$ref": "#/components/schemas/PeriodEnum"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "filter",
+            "schema": {
+              "$ref": "#/components/schemas/FilterEnum"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "historical_data_historical_data_get"
+      }
+    },
+    "/industry_search": {
+      "get": {
+        "summary": "Industry Search",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string",
+              "title": "Query"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "industry_search_industry_search_get"
+      }
+    },
+    "/stock_forecasts": {
+      "get": {
+        "summary": "Stock Forecasts Endpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_id",
+            "schema": {
+              "type": "string",
+              "title": "Stock Id"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "measure_code",
+            "schema": {
+              "$ref": "#/components/schemas/MeasureCode"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "period_type",
+            "schema": {
+              "$ref": "#/components/schemas/PeriodType"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "data_type",
+            "schema": {
+              "$ref": "#/components/schemas/DataType"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "age",
+            "schema": {
+              "$ref": "#/components/schemas/DataAge"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "stock_forecasts_endpoint_stock_forecasts_get"
+      }
+    },
+    "/historical_stats": {
+      "get": {
+        "summary": "Historical Stats Endpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "stats",
+            "schema": {
+              "type": "string",
+              "title": "Stats"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "historical_stats_endpoint_historical_stats_get"
+      }
+    },
+    "/corporate_actions": {
+      "get": {
+        "summary": "Corporate Actions Data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "corporate_actions_data_corporate_actions_get"
+      }
+    },
+    "/mutual_fund_search": {
+      "get": {
+        "summary": "Mutual Fund Search",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string",
+              "title": "Query"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "mutual_fund_search_mutual_fund_search_get"
+      }
+    },
+    "/stock_target_price": {
+      "get": {
+        "summary": "Stock Target Price Endpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_id",
+            "schema": {
+              "type": "string",
+              "title": "Stock Id"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "stock_target_price_endpoint_stock_target_price_get"
+      }
+    },
+    "/mutual_funds_details": {
+      "get": {
+        "summary": "Get Mutual Fund Details",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "get_mutual_fund_details_mutual_funds_details_get"
+      }
+    },
+    "/recent_announcements": {
+      "get": {
+        "summary": "Recent Announcements",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stock_name",
+            "schema": {
+              "type": "string",
+              "title": "Stock Name"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "recent_announcements_recent_announcements_get"
+      }
+    },
+    "/fetch_52_week_high_low_data": {
+      "get": {
+        "summary": "Fetch 52 Week High Low",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "operationId": "fetch_52_week_high_low_fetch_52_week_high_low_data_get"
+      }
+    }
+  },
+  "openapi": "3.0.1",
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "components": {
+    "schemas": {
+      "DataAge": {
+        "enum": [
+          "OneWeekAgo",
+          "ThirtyDaysAgo",
+          "SixtyDaysAgo",
+          "NinetyDaysAgo",
+          "Current"
+        ],
+        "type": "string",
+        "title": "DataAge"
+      },
+      "DataType": {
+        "enum": [
+          "Actuals",
+          "Estimates"
+        ],
+        "type": "string",
+        "title": "DataType"
+      },
+      "FilterEnum": {
+        "enum": [
+          "default",
+          "price",
+          "pe",
+          "sm",
+          "evebitda",
+          "ptb",
+          "mcs"
+        ],
+        "type": "string",
+        "title": "FilterEnum"
+      },
+      "PeriodEnum": {
+        "enum": [
+          "1m",
+          "6m",
+          "1yr",
+          "3yr",
+          "5yr",
+          "10yr",
+          "max"
+        ],
+        "type": "string",
+        "title": "PeriodEnum"
+      },
+      "PeriodType": {
+        "enum": [
+          "Annual",
+          "Interim"
+        ],
+        "type": "string",
+        "title": "PeriodType"
+      },
+      "MeasureCode": {
+        "enum": [
+          "EPS",
+          "CPS",
+          "CPX",
+          "DPS",
+          "EBI",
+          "EBT",
+          "GPS",
+          "GRM",
+          "NAV",
+          "NDT",
+          "NET",
+          "PRE",
+          "ROA",
+          "ROE",
+          "SAL"
+        ],
+        "type": "string",
+        "title": "MeasureCode"
+      },
+      "ValidationError": {
+        "type": "object",
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "in": "header",
+        "name": "x-api-key",
+        "type": "apiKey"
+      }
+    }
+  }
+}
