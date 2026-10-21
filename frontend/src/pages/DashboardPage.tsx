@@ -20,7 +20,8 @@ export function DashboardPage({ user }: { user: User | null }) {
   const [selected, setSelected] = useState('TATASTEEL');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [product, setProduct] = useState<'MIS' | 'CNC'>((localStorage.getItem('quantx_default_product') as 'MIS' | 'CNC') || 'MIS');
-  const [quantity, setQuantity] = useState('1');
+  const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT'>((localStorage.getItem('quantx_default_order_type') as 'MARKET' | 'LIMIT') || 'MARKET');
+  const [quantity, setQuantity] = useState(localStorage.getItem('quantx_default_order_size') || '1');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const trackedSymbols = useMemo(() => [...new Set([...initialSymbols, selected, ...positions.map((p) => p.symbol)])], [positions, selected]);
@@ -75,12 +76,12 @@ export function DashboardPage({ user }: { user: User | null }) {
     setSending(true);
     setNotice(null);
     try {
-      const order = await tradingApi.placeOrder({ instrument_id: selectedInstrument.id, side, product, order_type: 'MARKET', quantity: Number(quantity), validity: 'DAY', idempotency_key: crypto.randomUUID() });
+      const order = await tradingApi.placeOrder({ instrument_id: selectedInstrument.id, side, product, order_type: orderType, quantity: Number(quantity), limit_price: orderType === 'LIMIT' && selectedQuote ? String(selectedQuote.last_price) : null, validity: 'DAY', idempotency_key: crypto.randomUUID() });
       setNotice({ kind: 'success', text: `${order.symbol} ${order.side.toLowerCase()} order ${order.status.toLowerCase()} · ${order.filled_quantity}/${order.quantity} filled.` });
       import('../services/notificationService').then(({ notificationService }) => {
         notificationService.addNotification(
           `Order Placed: ${side} ${selectedInstrument.symbol}`,
-          `Successfully placed a MARKET ${product} order for ${quantity} shares of ${selectedInstrument.symbol}. Status: ${order.status}.`,
+          `Successfully placed a ${orderType} ${product} order for ${quantity} shares of ${selectedInstrument.symbol}. Status: ${order.status}.`,
           'ACCOUNT'
         );
       });
@@ -152,6 +153,7 @@ export function DashboardPage({ user }: { user: User | null }) {
             <label className="trade-form-label">INSTRUMENT<select value={selected} onChange={(event) => setSelected(event.target.value)} required>{instruments.map((instrument) => <option value={instrument.symbol} key={instrument.id}>{instrument.symbol} · {instrument.name}</option>)}</select></label>
             <div className="trade-quote-line"><span>{demoQuote ? 'Price · Data' : quoteFresh ? 'Fresh market quote' : selectedQuote ? 'Quote is stale' : 'Live quote unavailable'}</span><strong>{selectedQuote ? formatINR(selectedQuote.last_price) : '—'}</strong></div>
             <div className="trade-form-row"><label className="trade-form-label">PRODUCT<select value={product} onChange={(event) => setProduct(event.target.value as 'MIS' | 'CNC')}><option value="MIS">Intraday (MIS)</option><option value="CNC">Delivery (CNC)</option></select></label><label className="trade-form-label">QUANTITY<input type="number" min="1" max="1000000" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></label></div>
+            <label className="trade-form-label">ORDER TYPE<select value={orderType} onChange={(event) => setOrderType(event.target.value as 'MARKET' | 'LIMIT')}><option value="MARKET">Market</option><option value="LIMIT">Limit at current quote</option></select></label>
             <div className="trade-order-total"><span>Estimated turnover</span><strong>{selectedQuote ? formatINR(num(selectedQuote.last_price) * (Number(quantity) || 0)) : '—'}</strong></div>
             {notice && <div className={`trade-notice ${notice.kind}`} role="status">{notice.text}</div>}
         <button className={`trade-submit-button ${side === 'SELL' ? 'sell' : ''}`} disabled={sending || !canSubmitOrder}>{sending ? 'Submitting…' : snapshotQuote ? 'Snapshot only · orders unavailable' : !quoteFresh ? 'Waiting for a fresh quote' : !selectedInstrument?.provider_token && !demoQuote ? 'Market instrument unavailable' : `${side === 'BUY' ? 'Buy' : 'Sell'} ${selected || 'instrument'}`}</button>

@@ -19,8 +19,8 @@ export function StockDetailsPage() {
   const [instrument, setInstrument] = useState<Instrument | null | undefined>(undefined);
   const [side, setSide] = useState<OrderSide>('BUY');
   const [product, setProduct] = useState<OrderProduct>((localStorage.getItem('quantx_default_product') as OrderProduct) || 'MIS');
-  const [orderType, setOrderType] = useState<OrderType>('MARKET');
-  const [quantity, setQuantity] = useState('1');
+  const [orderType, setOrderType] = useState<OrderType>((localStorage.getItem('quantx_default_order_type') as OrderType) || 'MARKET');
+  const [quantity, setQuantity] = useState(localStorage.getItem('quantx_default_order_size') || '1');
   const [limitPrice, setLimitPrice] = useState('');
   const [triggerPrice, setTriggerPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);

@@ -88,6 +88,10 @@ export const authApi = {
 export const accountApi = {
   getAccount: () => request<AccountInfo>('/account/me'),
   setInitialCapital: (initial_capital: number) => request<AccountInfo>('/account/initial-capital', { method: 'PUT', body: JSON.stringify({ initial_capital }) }),
+  resetBalance: (balance: number) => request<AccountInfo>('/account/reset-balance', { method: 'PUT', body: JSON.stringify({ balance }) }),
+  resetAccount: (balance: number) => request<AccountInfo>('/account/reset', { method: 'POST', body: JSON.stringify({ balance }) }),
+  getFeeSettings: () => request<{ commission_per_order: string | null; regulatory_fee_percent: string }>('/account/fee-settings'),
+  setFeeSettings: (commission_per_order: number | null, regulatory_fee_percent: number) => request<{ commission_per_order: string | null; regulatory_fee_percent: string }>('/account/fee-settings', { method: 'PUT', body: JSON.stringify({ commission_per_order, regulatory_fee_percent }) }),
   getLedger: (limit = 20, offset = 0) => request<{ items: LedgerEntry[]; total: number; limit: number; offset: number }>(`/account/ledger?limit=${limit}&offset=${offset}`),
   getInstruments: (query = '', limit = 100, offset = 0) => {
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });

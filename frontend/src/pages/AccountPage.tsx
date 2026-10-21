@@ -194,9 +194,8 @@ export const AccountPage: React.FC = () => {
                   const isCredit = [
                     "INITIAL_CAPITAL",
                     "TRADE_CREDIT",
-                    "RESET",
                   ].includes(entry.entry_type) ||
-                    (entry.entry_type === "ADJUSTMENT" && entryAmount >= 0);
+                    ((entry.entry_type === "ADJUSTMENT" || entry.entry_type === "RESET") && entryAmount >= 0);
                   return (
                     <tr
                       key={entry.id}

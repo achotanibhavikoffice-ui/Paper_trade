@@ -535,3 +535,52 @@ html.dark .content-wrap .border-rose-200 {
 html.dark .content-wrap .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: #2b3a45 !important;
 }
+
+html.dark .settings-section,
+html.dark .settings-section .settings-segment,
+html.dark .settings-input-wrap > div,
+html.dark .settings-profile-form .settings-input-wrap > input,
+html.dark .settings-number,
+html.dark .settings-select,
+html.dark .settings-danger-card .settings-button,
+html.dark .settings-reset-card .settings-button {
+  background-color: #17232d !important;
+  border-color: #344550 !important;
+  color: #e6edf2 !important;
+}
+html.dark .settings-section-heading,
+html.dark .settings-row,
+html.dark .settings-reset-card,
+html.dark .settings-danger-card,
+html.dark .settings-divider { border-color: #2b3a45 !important; }
+html.dark .settings-section-heading h2,
+html.dark .settings-row-copy strong,
+html.dark .settings-reset-copy strong,
+html.dark .settings-appearance-heading strong,
+html.dark .settings-security-row strong { color: #e6edf2 !important; }
+html.dark .settings-section-heading p,
+html.dark .settings-row-copy span,
+html.dark .settings-reset-copy span,
+html.dark .settings-appearance-heading > div > span,
+html.dark .settings-security-row span,
+html.dark .settings-footnote { color: #a1b0bc !important; }
+html.dark .settings-security-row a { color: #79d8b8 !important; }
+html.dark .settings-section-icon,
+html.dark .settings-danger-icon { background-color: #203b37 !important; color: #79d8b8 !important; }
+html.dark .settings-number input,
+html.dark .settings-input-wrap input,
+html.dark .settings-profile-form .settings-input-wrap > input { color: #e6edf2 !important; }
+html.dark .settings-input-wrap > div > b,
+html.dark .settings-number span { color: #aab8c2 !important; }
+html.dark .settings-segment button { color: #aab8c2; }
+html.dark .settings-segment button.active { background: #203b37 !important; color: #8be0c3 !important; }
+html.dark .settings-button.primary { background: #087f72 !important; border-color: #087f72 !important; color: white !important; }
+html.dark .settings-button.danger { background: #3a2529 !important; border-color: #714047 !important; color: #ffaaa5 !important; }
+html.dark .settings-profile-form .settings-input-wrap > input[readonly] { background: #202d37 !important; color: #aab8c2 !important; }
+html.dark .settings-current { background: #202d37 !important; border-color: #344550 !important; color: #c0ccc7 !important; }
+html.dark .settings-feedback.success { background: #17372f !important; border-color: #28644f !important; color: #8be0c3 !important; }
+html.dark .settings-feedback.error { background: #3a2529 !important; border-color: #714047 !important; color: #ffaaa5 !important; }
+html.dark .settings-theme-options-three .settings-theme-option { background: #17232d !important; border-color: #344550 !important; }
+html.dark .settings-theme-options-three .settings-theme-option.selected { border-color: #39a98b !important; background: #1b302f !important; }
+html.dark .settings-theme-options-three .settings-theme-copy strong { color: #e6edf2 !important; }
+html.dark .settings-theme-options-three .settings-theme-copy small { color: #a1b0bc !important; }

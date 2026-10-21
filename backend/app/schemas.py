@@ -124,6 +124,8 @@ class AccountResponse(BaseModel):
     cash_balance: Decimal
     reserved_cash: Decimal = Decimal("0.00")
     capital_configured: bool = False
+    commission_per_order: Decimal | None = None
+    regulatory_fee_percent: Decimal = Decimal("0.000000")
     status: str
     created_at: datetime
     updated_at: datetime
@@ -133,6 +135,15 @@ class AccountResponse(BaseModel):
 
 class CapitalSetupInput(BaseModel):
     initial_capital: Decimal = Field(ge=100_000, le=5_000_000, max_digits=7, decimal_places=0)
+
+
+class AccountResetInput(BaseModel):
+    balance: Decimal = Field(ge=100_000, le=5_000_000, max_digits=7, decimal_places=0)
+
+
+class FeeSettingsInput(BaseModel):
+    commission_per_order: Decimal | None = Field(default=None, ge=0, le=10_000, max_digits=7, decimal_places=2)
+    regulatory_fee_percent: Decimal = Field(default=Decimal("0"), ge=0, le=5, max_digits=5, decimal_places=3)
 
 
 class LedgerEntryResponse(BaseModel):
