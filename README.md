@@ -6,7 +6,7 @@
     <img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
     <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql&logoColor=white" alt="PostgreSQL">
     <img src="https://img.shields.io/badge/Market-INR%20%7C%20NSE%20%7C%20BSE-087f72" alt="Indian market">
-    <a href="#-project-status-and-license"><img src="https://img.shields.io/badge/license-not%20specified-lightgrey" alt="License not specified"></a>
+    <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
     <a href="#-project-status-and-license"><img src="https://img.shields.io/badge/status-active%20development-blue" alt="Active development"></a>
     <a href="#-contributing"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
   </p>
@@ -413,4 +413,6 @@ Issues and pull requests are welcome. For a useful contribution:
 
 ## 📄 Project status and license
 
-Quantx is under active development. Some workspace preferences are browser-local, market-data availability depends on external services, and AI coaching features beyond the help guide are planned. The repository currently does not include a `LICENSE` file; until one is added, no open-source reuse license is specified.
+Quantx is under active development. Some workspace preferences are browser-local, market-data availability depends on external services, and AI coaching features beyond the help guide are planned.
+
+This project is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for the full terms and copyright notice.
