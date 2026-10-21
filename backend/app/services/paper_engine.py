@@ -33,6 +33,9 @@ class PaperTradingEngine:
 
     def remember_quote(self, quote: dict[str, Any]) -> None:
         with self._lock:
+            if quote.get("data_source") == "indianapi":
+                self._quotes.pop(quote["symbol"], None)
+                return
             self._quotes[quote["symbol"]] = quote
             with SessionLocal() as db:
                 account_ids = db.scalars(select(Account.id)).all()
@@ -58,6 +61,8 @@ class PaperTradingEngine:
             payload.trigger_price = (round(payload.trigger_price / tick) * tick).quantize(CENT)
         self._validate_order(instrument, payload.side, payload.product, payload.order_type, payload.quantity, payload.limit_price, payload.trigger_price)
         quote = self._quotes.get(instrument.symbol)
+        if quote and quote.get("data_source") == "indianapi" and payload.order_type == "MARKET":
+            raise HTTPException(409, "IndianAPI provides price snapshots without market depth. Wait for a paper execution feed before placing a market order.")
         if payload.order_type == "MARKET" and not quote and not allow_stale_market:
             raise HTTPException(409, "Market data is not available for this instrument yet. Open its quote or watchlist first.")
         if payload.order_type == "MARKET" and quote and self._quote_is_stale(quote) and not allow_stale_market:

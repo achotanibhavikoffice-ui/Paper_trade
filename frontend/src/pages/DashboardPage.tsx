@@ -29,7 +29,8 @@ export function DashboardPage({ user }: { user: User | null }) {
   const quoteFresh = Boolean(selectedQuote && Date.now() - Date.parse(selectedQuote.timestamp) <= (marketStatus?.quote_max_age_seconds ?? 120) * 1000);
   const selectedInstrument = instruments.find((item) => item.symbol === selected);
   const demoQuote = selectedQuote?.data_source === 'demo';
-  const canSubmitOrder = Boolean(selectedInstrument && (selectedInstrument.provider_token || demoQuote) && quoteFresh && feedState === 'live');
+  const snapshotQuote = selectedQuote?.data_source === 'indianapi' || (!demoQuote && marketStatus?.mode === 'indianapi');
+  const canSubmitOrder = Boolean(selectedInstrument && !snapshotQuote && (selectedInstrument.provider_token || demoQuote) && quoteFresh && feedState === 'live');
 
   const refreshPortfolio = useCallback(async () => {
     const [accountResult, summaryResult, positionsResult, statusResult] = await Promise.allSettled([
@@ -101,7 +102,7 @@ export function DashboardPage({ user }: { user: User | null }) {
           <h1>Good day, {user?.name.split(' ')[0] ?? 'Trader'}.</h1>
           <p className="trade-subtitle">Build conviction by practicing against current market depth.</p>
         </div>
-        <div className={`trade-feed-badge ${marketConnected ? 'feed-live' : 'feed-idle'}`} title={demoMode ? 'The backend generates practice prices when 021 has no current quote. Trades settle only in the local paper account.' : marketStatusUnavailable ? 'Could not read the authenticated market status endpoint.' : undefined}><i />{demoMode ? 'DATA' : marketConnected ? 'LIVE MARKET FEED' : marketStatusUnavailable ? 'MARKET STATUS UNAVAILABLE' : !marketStatus ? 'CHECKING MARKET FEED' : marketStatus.enabled ? 'CONNECTING TO FEED' : 'MARKET FEED NOT CONFIGURED'}</div>
+        <div className={`trade-feed-badge ${marketConnected ? 'feed-live' : 'feed-idle'}`} title={snapshotQuote ? 'IndianAPI price snapshots refresh about once per minute. They do not include market depth and cannot drive simulated fills.' : demoMode ? 'The backend generates practice prices when 021 has no current quote. Trades settle only in the local paper account.' : marketStatusUnavailable ? 'Could not read the authenticated market status endpoint.' : undefined}><i />{snapshotQuote ? 'API SNAPSHOT' : demoMode ? 'DATA' : marketConnected ? 'LIVE MARKET FEED' : marketStatusUnavailable ? 'MARKET STATUS UNAVAILABLE' : !marketStatus ? 'CHECKING MARKET FEED' : marketStatus.enabled ? 'CONNECTING TO FEED' : 'MARKET FEED NOT CONFIGURED'}</div>
       </section>
 
       <section className="trade-hero-grid four" aria-label="Paper portfolio summary">
@@ -153,7 +154,7 @@ export function DashboardPage({ user }: { user: User | null }) {
             <div className="trade-form-row"><label className="trade-form-label">PRODUCT<select value={product} onChange={(event) => setProduct(event.target.value as 'MIS' | 'CNC')}><option value="MIS">Intraday (MIS)</option><option value="CNC">Delivery (CNC)</option></select></label><label className="trade-form-label">QUANTITY<input type="number" min="1" max="1000000" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} required /></label></div>
             <div className="trade-order-total"><span>Estimated turnover</span><strong>{selectedQuote ? formatINR(num(selectedQuote.last_price) * (Number(quantity) || 0)) : '—'}</strong></div>
             {notice && <div className={`trade-notice ${notice.kind}`} role="status">{notice.text}</div>}
-            <button className={`trade-submit-button ${side === 'SELL' ? 'sell' : ''}`} disabled={sending || !canSubmitOrder}>{sending ? 'Submitting…' : !quoteFresh ? 'Waiting for a fresh quote' : !selectedInstrument?.provider_token && !demoQuote ? 'Market instrument unavailable' : `${side === 'BUY' ? 'Buy' : 'Sell'} ${selected || 'instrument'}`}</button>
+        <button className={`trade-submit-button ${side === 'SELL' ? 'sell' : ''}`} disabled={sending || !canSubmitOrder}>{sending ? 'Submitting…' : snapshotQuote ? 'Snapshot only · orders unavailable' : !quoteFresh ? 'Waiting for a fresh quote' : !selectedInstrument?.provider_token && !demoQuote ? 'Market instrument unavailable' : `${side === 'BUY' ? 'Buy' : 'Sell'} ${selected || 'instrument'}`}</button>
             <small className="trade-compliance-note">Paper trading only. No real orders or funds are involved.</small>
           </form>
 

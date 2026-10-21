@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { User } from './api';
-import { authApi } from './api';
+import { accountApi, authApi } from './api';
 
 import { AuthPage } from './components/AuthPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './components/PasswordRecoveryPages';
@@ -28,11 +28,15 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
 import { AccountPage } from './pages/AccountPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { CapitalSetupPage } from './pages/CapitalSetupPage';
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const [capitalConfigured, setCapitalConfigured] = useState<boolean | null>(null);
+  const [accountInitialCapital, setAccountInitialCapital] = useState<string | null>(null);
 
   useEffect(() => {
     authApi
@@ -41,6 +45,25 @@ export default function App() {
       .catch(() => setUser(null))
       .finally(() => setReady(true));
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setCapitalConfigured(null);
+      setAccountInitialCapital(null);
+      return;
+    }
+    let active = true;
+    setCapitalConfigured(null);
+    accountApi.getAccount()
+      .then((account) => {
+        if (active) {
+          setCapitalConfigured(account.capital_configured);
+          setAccountInitialCapital(account.initial_capital);
+        }
+      })
+      .catch(() => { if (active) setCapitalConfigured(false); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   if (!ready && location.pathname !== '/') {
     return (
@@ -56,6 +79,10 @@ export default function App() {
     if (!user) {
       return <Navigate to="/login" replace />;
     }
+    if (capitalConfigured === null) {
+      return <div className="boot-screen min-h-screen"><Brand /><span>Preparing your workspace</span></div>;
+    }
+    if (!capitalConfigured) return <Navigate to="/setup-account" replace />;
     return <AppLayout user={user} onAuth={setUser}>{children}</AppLayout>;
   };
 
@@ -63,6 +90,16 @@ export default function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage user={user} />} />
+      <Route
+        path="/setup-account"
+        element={user
+          ? capitalConfigured === null
+            ? <div className="boot-screen min-h-screen"><Brand /><span>Preparing your workspace</span></div>
+            : capitalConfigured && (location.state as { promptCapitalSetup?: boolean } | null)?.promptCapitalSetup !== true
+              ? <Navigate to="/dashboard" replace />
+              : <CapitalSetupPage currentCapital={capitalConfigured ? accountInitialCapital : null} onComplete={() => { setCapitalConfigured(true); navigate('/dashboard', { replace: true }); }} />
+          : <Navigate to="/login" replace />}
+      />
       <Route
         path="/login"
         element={user ? <Navigate to="/dashboard" replace /> : <AuthPage mode="login" onAuth={setUser} />}

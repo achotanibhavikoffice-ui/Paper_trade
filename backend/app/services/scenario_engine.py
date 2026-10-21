@@ -36,7 +36,7 @@ def _quantize_percent(percent: Decimal) -> Decimal:
 
 def get_portfolio_baseline(user: User, db: Session) -> PortfolioBaselineResponse:
     account = db.scalar(select(Account).where(Account.user_id == user.id))
-    cash_balance = Decimal(str(account.cash_balance)) if account else Decimal("100000.00")
+    cash_balance = Decimal(str(account.cash_balance)) if account else Decimal("0.00")
 
     positions = []
     if account:

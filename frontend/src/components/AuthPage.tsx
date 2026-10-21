@@ -11,7 +11,7 @@ export function AuthPage({ mode, onAuth }: { mode: 'login' | 'register'; onAuth:
   const navigate = useNavigate();
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(''); setBusy(true);
-    try { const result = register ? await authApi.register(name, email, password) : await authApi.login(email, password); onAuth(result.user); navigate('/dashboard'); }
+    try { const result = register ? await authApi.register(name, email, password) : await authApi.login(email, password); onAuth(result.user); navigate('/setup-account', { state: { promptCapitalSetup: true } }); }
     catch (e) { setError(e instanceof Error ? e.message : 'Please try again.'); }
     finally { setBusy(false); }
   }

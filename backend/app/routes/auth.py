@@ -43,11 +43,15 @@ def generate_account_number() -> str:
     return f"TRD-{chars}"
 
 
-def create_initial_account_for_user(user: User, db: Session) -> Account:
+def create_initial_account_for_user(
+    user: User,
+    db: Session,
+    initial_capital: Decimal = Decimal("100000.00"),
+    capital_configured: bool = False,
+) -> Account:
     existing = db.scalar(select(Account).where(Account.user_id == user.id))
     if existing:
         return existing
-    initial_capital = Decimal("100000.00")
     account = Account(
         user_id=user.id,
         account_number=generate_account_number(),
@@ -55,6 +59,7 @@ def create_initial_account_for_user(user: User, db: Session) -> Account:
         currency="INR",
         initial_capital=initial_capital,
         cash_balance=initial_capital,
+        capital_configured=capital_configured,
         status="ACTIVE",
     )
     db.add(account)
@@ -137,6 +142,7 @@ def register(payload: RegisterInput, response: Response, db: Session = Depends(g
             currency="INR",
             initial_capital=initial_capital,
             cash_balance=initial_capital,
+            capital_configured=False,
             status="ACTIVE",
         )
         db.add(account)

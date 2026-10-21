@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     indian_api_timeout_seconds: float = 20.0
     indian_api_history_ttl_seconds: int = 21600
     indian_api_profile_ttl_seconds: int = 3600
+    indian_api_quote_poll_seconds: int = 60
+    indian_api_quote_max_symbols: int = 25
     indian_api_lists_ttl_seconds: int = 300
     indian_api_stale_ttl_seconds: int = 604800
 

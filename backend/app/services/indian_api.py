@@ -356,6 +356,14 @@ class IndianApiService:
             lambda payload: normalize_profile(payload, symbol),
         )
 
+    def quote_snapshot(self, symbol: str) -> dict[str, Any]:
+        """Current price snapshot from /stock, cached for one polling interval."""
+        ttl = max(15, settings.indian_api_quote_poll_seconds - 5)
+        return self._cached(
+            ("quote_snapshot", symbol), ttl, "/stock", {"name": symbol},
+            lambda payload: normalize_profile(payload, symbol),
+        )
+
     def trending(self) -> dict[str, Any]:
         return self._cached(("trending",), settings.indian_api_lists_ttl_seconds, "/trending", {}, normalize_trending)
 

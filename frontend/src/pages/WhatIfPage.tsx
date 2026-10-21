@@ -329,7 +329,7 @@ export function WhatIfPage() {
           <div>
             <span className="block text-[10px] uppercase text-black font-semibold">Virtual Cash</span>
             <strong className="text-black text-sm font-mono">
-              ₹{baseline ? formatMoney(baseline.cash_balance) : '100,000.00'}
+              {baseline ? `₹${formatMoney(baseline.cash_balance)}` : '—'}
             </strong>
           </div>
           <div>
@@ -341,7 +341,7 @@ export function WhatIfPage() {
           <div>
             <span className="block text-[10px] uppercase text-black font-semibold">Total Portfolio</span>
             <strong className="text-black text-sm font-mono">
-              ₹{baseline ? formatMoney(baseline.total_portfolio_value) : '100,000.00'}
+              {baseline ? `₹${formatMoney(baseline.total_portfolio_value)}` : '—'}
             </strong>
           </div>
           <div>

@@ -11,11 +11,11 @@ export type Quote = {
   symbol: string; exchange: string; token: number; last_price: Numeric; previous_close?: Numeric | null;
   open?: Numeric | null; high?: Numeric | null; low?: Numeric | null; volume?: number | null;
   bids: { price: Numeric; quantity: number; orders?: number }[];
-  asks: { price: Numeric; quantity: number; orders?: number }[]; timestamp: string; data_source?: 'demo' | '021';
+  asks: { price: Numeric; quantity: number; orders?: number }[]; timestamp: string; data_source?: 'demo' | '021' | 'indianapi';
 };
 export type AccountInfo = {
   id: string; user_id: string; account_number: string; account_type: string; currency: string;
-  initial_capital: string; cash_balance: string; reserved_cash: string; status: string;
+  initial_capital: string; cash_balance: string; reserved_cash: string; capital_configured: boolean; status: string;
   created_at: string; updated_at: string;
 };
 export type LedgerEntry = {
@@ -80,6 +80,7 @@ export const authApi = {
 
 export const accountApi = {
   getAccount: () => request<AccountInfo>('/account/me'),
+  setInitialCapital: (initial_capital: number) => request<AccountInfo>('/account/initial-capital', { method: 'PUT', body: JSON.stringify({ initial_capital }) }),
   getLedger: (limit = 20, offset = 0) => request<{ items: LedgerEntry[]; total: number; limit: number; offset: number }>(`/account/ledger?limit=${limit}&offset=${offset}`),
   getInstruments: (query = '', limit = 100, offset = 0) => {
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });

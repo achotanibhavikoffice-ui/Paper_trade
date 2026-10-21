@@ -224,8 +224,8 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
               </kbd>
             </button>
 
-            <span className={`market-status workspace-market-status ${marketStatus?.connected && marketStatus.mode !== 'demo' ? 'connected' : ''}`} title={marketStatus?.mode === 'demo' ? 'Generated practice prices are used when 021 has no current quote. Orders are simulated in your local paper account.' : marketStatus?.connected ? '021 market feed connected; orders execute in the local paper simulator.' : 'Market feed is disconnected. Quotes may be unavailable; orders require a fresh quote.'}>
-              <i /> {marketStatus?.mode === 'demo' ? 'DATA' : marketStatus?.connected ? 'MARKET FEED LIVE' : 'PAPER PRACTICE'}
+            <span className={`market-status workspace-market-status ${marketStatus?.connected && !['demo', 'indianapi', 'snapshot+demo'].includes(marketStatus.mode) ? 'connected' : ''}`} title={['indianapi', 'snapshot+demo'].includes(marketStatus?.mode ?? '') ? 'IndianAPI price snapshots refresh about once per minute; they do not include market depth.' : marketStatus?.mode === 'demo' ? 'Generated practice prices are used when 021 has no current quote. Orders are simulated in your local paper account.' : marketStatus?.connected ? '021 market feed connected; orders execute in the local paper simulator.' : 'Market feed is disconnected. Quotes may be unavailable; orders require a fresh quote.'}>
+              <i /> {['indianapi', 'snapshot+demo'].includes(marketStatus?.mode ?? '') ? 'API SNAPSHOT' : marketStatus?.mode === 'demo' ? 'DATA' : marketStatus?.connected ? 'MARKET FEED LIVE' : 'PAPER PRACTICE'}
             </span>
 
             {/* Buying Power Pill */}

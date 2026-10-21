@@ -18,6 +18,7 @@ from app.routes.auth import get_current_user
 from app.schemas import MarketStressInput, OrderCreateInput, OrderModifyInput, ScenarioCreateInput
 from app.security import password_fingerprint, read_session_identity
 from app.services.market_data import market_data
+from app.services.indian_api import indian_api
 from app.services.paper_engine import paper_engine
 
 router = APIRouter(prefix="/api", tags=["paper trading"])
@@ -300,7 +301,7 @@ def get_market_status(user: User = Depends(get_current_user)) -> dict[str, Any]:
         if isinstance(value, datetime):
             timestamps.append(value)
     latest = max(timestamps, default=None)
-    return {"enabled": market_data.provider.configured or settings.demo_market_data_enabled, "connected": market_data.connected,
+    return {"enabled": market_data.provider.configured or settings.demo_market_data_enabled or indian_api.configured, "connected": market_data.connected,
             "quote_count": len(market_data.quotes), "last_update": latest.isoformat() if latest else None,
             "mode": market_data.mode, "order_execution": "local paper simulator",
             "quote_max_age_seconds": settings.market_quote_max_age_seconds}
@@ -334,12 +335,14 @@ async def market_socket(websocket: WebSocket) -> None:
             message = await websocket.receive_json()
             task = str(message.get("task", "")).lower()
             symbols = message.get("symbols", [])
+            poll_indianapi = message.get("poll_indianapi") is True
             if not isinstance(symbols, list) or any(not isinstance(item, str) for item in symbols):
                 await websocket.send_json({"type": "error", "message": "symbols must be an array of instrument symbols."})
                 continue
             try:
                 if task == "subscribe":
                     snapshots = await market_data.subscribe(websocket, symbols)
+                    market_data.set_indian_api_watchlist(websocket, symbols, poll_indianapi)
                     await websocket.send_json(jsonable_encoder({"type": "subscribed", "symbols": [s.upper() for s in symbols], "snapshots": snapshots}))
                 elif task == "unsubscribe":
                     await market_data.unsubscribe(websocket, symbols)

@@ -61,6 +61,7 @@ class Account(Base):
     initial_capital: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="100000.00")
     cash_balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="100000.00")
     reserved_cash: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="0.00")
+    capital_configured: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="ACTIVE")
     stress_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

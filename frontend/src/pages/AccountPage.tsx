@@ -90,7 +90,7 @@ export const AccountPage: React.FC = () => {
             label="Initial Capital"
             value={account ? formatINR(account.initial_capital) : "—"}
             icon={<Landmark className="w-5 h-5" />}
-            subtext="Allocated on account creation"
+            subtext="Chosen during account setup"
           />{" "}
           <StatCard
             label="Account Status"
