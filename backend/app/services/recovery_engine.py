@@ -22,7 +22,7 @@ from app.models import (
 )
 from app.services.market_data import market_data
 
-log = logging.getLogger("tradeo.recovery")
+log = logging.getLogger("quantx.recovery")
 CENT = Decimal("0.01")
 ZERO = Decimal("0.00")
 

@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        tradeo: {
+        quantx: {
           ink: '#172522',
           canvas: '#f5f7f5',
           green: '#17836d',

@@ -66,11 +66,11 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
   const toggleDarkMode = () => {
     const isDark = document.documentElement.classList.toggle('dark');
     setDarkMode(isDark);
-    localStorage.setItem('tradeo_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('quantx_theme', isDark ? 'dark' : 'light');
   };
 
   useEffect(() => {
-    if (localStorage.getItem('tradeo_theme') === 'dark') {
+    if (localStorage.getItem('quantx_theme') === 'dark') {
       document.documentElement.classList.add('dark');
       setDarkMode(true);
     }

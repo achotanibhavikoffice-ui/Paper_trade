@@ -2,7 +2,7 @@ import { AppNotification } from '../types';
 
 export const notificationService = {
   getNotifications(): AppNotification[] {
-    const data = localStorage.getItem('tradeo_notifications');
+    const data = localStorage.getItem('quantx_notifications');
     if (!data) return [];
     try {
       return JSON.parse(data) as AppNotification[];
@@ -22,18 +22,18 @@ export const notificationService = {
       created_at: new Date().toISOString(),
     };
     notifications.unshift(newNotif);
-    localStorage.setItem('tradeo_notifications', JSON.stringify(notifications));
-    window.dispatchEvent(new Event('tradeo_notification_added'));
+    localStorage.setItem('quantx_notifications', JSON.stringify(notifications));
+    window.dispatchEvent(new Event('quantx_notification_added'));
   },
 
   markAllRead() {
     const notifications = this.getNotifications().map(n => ({ ...n, read: true }));
-    localStorage.setItem('tradeo_notifications', JSON.stringify(notifications));
-    window.dispatchEvent(new Event('tradeo_notification_added')); // reuse same event to trigger re-render
+    localStorage.setItem('quantx_notifications', JSON.stringify(notifications));
+    window.dispatchEvent(new Event('quantx_notification_added')); // reuse same event to trigger re-render
   },
   
   initialize() {
-    if (!localStorage.getItem('tradeo_notifications')) {
+    if (!localStorage.getItem('quantx_notifications')) {
       const initial: AppNotification[] = [
         {
           id: 'n1',
@@ -52,7 +52,7 @@ export const notificationService = {
           created_at: new Date(Date.now() - 86400000).toISOString(),
         }
       ];
-      localStorage.setItem('tradeo_notifications', JSON.stringify(initial));
+      localStorage.setItem('quantx_notifications', JSON.stringify(initial));
     }
   }
 };

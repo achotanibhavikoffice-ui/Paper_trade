@@ -29,7 +29,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({ onNavigate }) => {
       </h1>
 
       <p className="text-sm text-slate-500 dark:text-slate-500 max-w-md mb-8">
-        The trading page or market resource you requested does not exist or has been relocated within the Tradeo platform.
+        The trading page or market resource you requested does not exist or has been relocated within the Quantx platform.
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">

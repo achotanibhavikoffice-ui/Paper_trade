@@ -1,6 +1,6 @@
-# Tradeo
+# Quantx
 
-Tradeo is a paper trading workspace for practicing NSE equity orders against simulated market conditions. The frontend starts with a public product home page, then guides users through registration or sign-in before opening the protected practice dashboard. The FastAPI/SQLAlchemy authentication API is backed by PostgreSQL.
+Quantx is a paper trading workspace for practicing NSE equity orders against simulated market conditions. The frontend starts with a public product home page, then guides users through registration or sign-in before opening the protected practice dashboard. The FastAPI/SQLAlchemy authentication API is backed by PostgreSQL.
 
 The implementation uses React, TypeScript, Vite, Tailwind CSS; Python, FastAPI, SQLAlchemy; PostgreSQL; and Redis/WebSockets for market data. It includes account recovery and a local paper-order engine. For the 021-02 problem statement, the app may use 021 authentication, instruments, and the market-data WebSocket; orders are simulated locally and are never sent to 021 order APIs. See [ARCHITECTURE.md](ARCHITECTURE.md) for routes, flow, and constraints.
 
@@ -18,7 +18,7 @@ This starts the frontend, FastAPI backend, PostgreSQL, and Redis together. Teamm
 
 4. Open `http://localhost:5173`. The API health endpoint is `http://localhost:4000/api/health`.
 
-The local PostgreSQL database is named `tradeo`, with the development role `tradeo`. Its host port is `5433` to avoid colliding with a PostgreSQL installation already running on Windows. For pgAdmin, use host `localhost`, port `5433`, database `tradeo`, username `tradeo`, password `tradeo_local_only`.
+The local PostgreSQL database is named `quantx`, with the development role `quantx`. Its host port is `5433` to avoid colliding with a PostgreSQL installation already running on Windows. For pgAdmin, use host `localhost`, port `5433`, database `quantx`, username `quantx`, password `quantx_local_only`.
 
 Useful commands:
 
@@ -30,7 +30,7 @@ docker compose down               # stop services; keep database data
 
 PostgreSQL and Redis data persist in named Docker volumes. For live market data, create a root `.env` file (ignored by Git) with your own `JWT_SECRET`, `MARKET_DATA_ENABLED=true`, `MARKET_DATA_USERNAME=<your UCC>`, and `MARKET_DATA_PASSWORD=<your developer password>`. Do not share or commit that file. Startup will authenticate to 021 and sync instruments once per day; 021 may invalidate a previous access token when it logs in, so the backend owns this login while running. Teammates should use their own 021 credentials rather than copy yours. Without these values, local auth and the app remain available, but real quotes and order matching are unavailable.
 
-When 021 is unavailable, enable `DEMO_MARKET_DATA_ENABLED=true` to start a backend quote and depth stream. Docker Compose enables it by default; native setup uses the setting in `backend/.env`. The dashboard shows a **Data** badge for generated practice prices. These prices drive the local paper matcher, so accepted orders can fill and update the account, positions, and order history; nothing is sent to a broker. Set `DEMO_MARKET_DATA_ENABLED=false` to require 021 quotes. The instrument charts use TradingView Lightweight Charts with quotes from the Tradeo backend.
+When 021 is unavailable, enable `DEMO_MARKET_DATA_ENABLED=true` to start a backend quote and depth stream. Docker Compose enables it by default; native setup uses the setting in `backend/.env`. The dashboard shows a **Data** badge for generated practice prices. These prices drive the local paper matcher, so accepted orders can fill and update the account, positions, and order history; nothing is sent to a broker. Set `DEMO_MARKET_DATA_ENABLED=false` to require 021 quotes. The instrument charts use TradingView Lightweight Charts with quotes from the Quantx backend.
 
 ### Run without Docker
 
@@ -54,12 +54,12 @@ If PostgreSQL is already installed and its service is running, open `psql` using
 Enter the `postgres` password you chose during installation. In the `psql` prompt, create the app role and database (replace the example password with your own local password):
 
 ```sql
-CREATE ROLE tradeo WITH LOGIN PASSWORD 'ChooseALocalPassword';
-CREATE DATABASE tradeo OWNER tradeo;
+CREATE ROLE quantx WITH LOGIN PASSWORD 'ChooseALocalPassword';
+CREATE DATABASE quantx OWNER quantx;
 \q
 ```
 
-Set `DATABASE_URL` in `backend/.env` to `postgresql+psycopg://tradeo:ChooseALocalPassword@localhost:5432/tradeo`. The FastAPI app creates the initial `users` table in development when it starts. You do not need Docker for this setup. If `psql` asks for a password and you do not know the PostgreSQL install password, reset it through the PostgreSQL administrator account/pgAdmin first.
+Set `DATABASE_URL` in `backend/.env` to `postgresql+psycopg://quantx:ChooseALocalPassword@localhost:5432/quantx`. The FastAPI app creates the initial `users` table in development when it starts. You do not need Docker for this setup. If `psql` asks for a password and you do not know the PostgreSQL install password, reset it through the PostgreSQL administrator account/pgAdmin first.
 
 The API includes session authentication, instrument sync, market quotes/depth, a local paper-order matcher, fills, cash/position accounting, configurable charges, order audit events, market-stress settings, What-If scenarios, and intraday square-off. 021 is used for authentication/instruments/market data only; it does not receive paper orders. Redis runs as part of the default Compose stack.
 

@@ -1,7 +1,7 @@
 """IndianAPI (stock.indianapi.in) market-reference service.
 
 Responsibilities: call the provider with the server-side ``x-api-key`` header (the key never
-appears in URLs, logs or responses), normalize payloads into Tradeo's schema, cache results
+appears in URLs, logs or responses), normalize payloads into Quantx's schema, cache results
 (fresh TTL + stale fallback), dedupe concurrent identical requests, and translate provider
 failures into :class:`IndianApiError`.
 """
@@ -20,7 +20,7 @@ from typing import Any, Callable
 
 from app.config import settings
 
-logger = logging.getLogger("tradeo.indian_api")
+logger = logging.getLogger("quantx.indian_api")
 
 HISTORY_PERIODS = ("1m", "6m", "1yr", "3yr", "5yr", "10yr", "max")
 EXCHANGES = ("NSE", "BSE")
@@ -423,7 +423,7 @@ class IndianApiService:
             url = f"{url}?{urllib.parse.urlencode(params)}"
         headers = {
             "Accept": "application/json",
-            "User-Agent": "Tradeo/0.1",
+            "User-Agent": "Quantx/0.1",
             "x-api-key": settings.indian_api_key.strip(),
         }
         http_get = self._http_get or _http_get

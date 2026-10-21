@@ -1,4 +1,4 @@
-# Tradeo FastAPI Application Entrypoint
+# Quantx FastAPI Application Entrypoint
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 import asyncio
@@ -24,7 +24,7 @@ from app.services.market_data import market_data
 from app.services.paper_engine import paper_engine
 from app.services.provider import provider_client
 
-logger = logging.getLogger("tradeo.startup")
+logger = logging.getLogger("quantx.startup")
 
 
 def seed_instruments_if_empty() -> None:
@@ -128,7 +128,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.app_env == "production":
         if settings.demo_market_data_enabled:
             raise RuntimeError("Set DEMO_MARKET_DATA_ENABLED=false in production.")
-        if "tradeo-local" in settings.jwt_secret.lower() or "change-this-before-production" in settings.jwt_secret.lower():
+        if "quantx-local" in settings.jwt_secret.lower() or "change-this-before-production" in settings.jwt_secret.lower():
             raise RuntimeError("Replace the local-development JWT secret with a unique production secret.")
         if settings.session_cookie_secure is not True:
             raise RuntimeError("Set SESSION_COOKIE_SECURE=true in production so session cookies require HTTPS.")
@@ -136,7 +136,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             raise RuntimeError("Set FRONTEND_ORIGIN to the HTTPS address of the production frontend.")
         if not settings.database_url.startswith(("postgresql://", "postgresql+psycopg://")):
             raise RuntimeError("Production must use PostgreSQL through DATABASE_URL.")
-        if "tradeo_local_only" in settings.database_url:
+        if "quantx_local_only" in settings.database_url:
             raise RuntimeError("Replace the local Docker database password before production.")
         if settings.mail_backend != "smtp":
             raise RuntimeError("Set MAIL_BACKEND=smtp in production so password-reset links are delivered privately.")
@@ -171,7 +171,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                             await asyncio.sleep(5)
                             continue
                     connection = candidate
-                    logger.info("This process owns the Tradeo market-feed and square-off worker lease")
+                    logger.info("This process owns the Quantx market-feed and square-off worker lease")
                 else:
                     connection.execute(text("SELECT 1")).scalar()
                 if not market_started:
@@ -214,7 +214,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     operations_task = None
     if settings.app_env != "test":
-        operations_task = asyncio.create_task(operations_supervisor(), name="tradeo-operations-supervisor")
+        operations_task = asyncio.create_task(operations_supervisor(), name="quantx-operations-supervisor")
     yield
     if operations_task:
         operations_task.cancel()
@@ -224,7 +224,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     engine.dispose()
 
 
-app = FastAPI(title="Tradeo API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Quantx API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],

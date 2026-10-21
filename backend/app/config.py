@@ -6,11 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "development"
-    database_url: str = "postgresql+psycopg://tradeo:tradeo_local_only@localhost:5432/tradeo"
+    database_url: str = "postgresql+psycopg://quantx:quantx_local_only@localhost:5432/quantx"
     jwt_secret: str = ""
     frontend_origin: str = "http://localhost:5173"
     session_cookie_secure: bool = False
-    session_cookie_name: str = "tradeo_session"
+    session_cookie_name: str = "quantx_session"
     session_lifetime_days: int = 7
     mail_backend: Literal["console", "smtp"] = "console"
     smtp_host: str = ""
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_from_email: str = ""
-    smtp_from_name: str = "Tradeo"
+    smtp_from_name: str = "Quantx"
     smtp_starttls: bool = True
     market_data_enabled: bool = False
     demo_market_data_enabled: bool = False

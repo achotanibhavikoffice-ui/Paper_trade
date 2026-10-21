@@ -1,5 +1,5 @@
 {
-  "name": "tradeo",
+  "name": "quantx",
   "private": true,
   "version": "0.1.0",
   "engines": { "node": ">=20.19.0" },

@@ -45,7 +45,7 @@ def get_stress_mode_state() -> MarketStressStateResponse:
     level = market_store.stress_level
     vix = market_store.get_vix_index()
     mult = {"mild": 1.8, "high": 3.5, "panic": 5.0}.get(level, 1.0) if enabled else 1.0
-    msg = f"Market Stress Mode ACTIVE ({level.upper()}). Simulated Tradeo VIX: {vix:.1f}" if enabled else "Market Stress Mode OFF. Quotes operating under normal volatility."
+    msg = f"Market Stress Mode ACTIVE ({level.upper()}). Simulated Quantx VIX: {vix:.1f}" if enabled else "Market Stress Mode OFF. Quotes operating under normal volatility."
 
     return MarketStressStateResponse(
         enabled=enabled,

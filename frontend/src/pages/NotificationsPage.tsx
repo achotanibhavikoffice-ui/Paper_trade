@@ -13,8 +13,8 @@ export function NotificationsPage() {
   useEffect(() => {
     const loadNotifs = () => setNotifications(notificationService.getNotifications());
     loadNotifs();
-    window.addEventListener('tradeo_notification_added', loadNotifs);
-    return () => window.removeEventListener('tradeo_notification_added', loadNotifs);
+    window.addEventListener('quantx_notification_added', loadNotifs);
+    return () => window.removeEventListener('quantx_notification_added', loadNotifs);
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

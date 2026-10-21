@@ -21,7 +21,7 @@ from app.models import Instrument, Order, Position
 from app.services.provider import ProviderClient, provider_client
 
 logger = logging.getLogger(__name__)
-log = logging.getLogger("tradeo.market")
+log = logging.getLogger("quantx.market")
 
 
 def _u(data: bytes, offset: int, size: int) -> int:
@@ -177,15 +177,15 @@ class MarketDataService:
         if self._redis:
             try:
                 for symbol in self._default_symbols:
-                    cached = await self._redis.get(f"tradeo:quote:{symbol}")
+                    cached = await self._redis.get(f"quantx:quote:{symbol}")
                     if cached:
                         self.quotes[symbol] = json.loads(cached)
             except Exception:
                 log.exception("Could not restore cached market quote snapshots")
         if self.on_quote:
-            self._match_task = asyncio.create_task(self._match_worker(), name="tradeo-paper-match-queue")
+            self._match_task = asyncio.create_task(self._match_worker(), name="quantx-paper-match-queue")
         if settings.demo_market_data_enabled:
-            self._demo_task = asyncio.create_task(self._run_demo(), name="tradeo-demo-market-feed")
+            self._demo_task = asyncio.create_task(self._run_demo(), name="quantx-demo-market-feed")
         if self.provider.configured:
             self._task = asyncio.create_task(self._run(), name="021-market-feed")
 
@@ -446,8 +446,8 @@ class MarketDataService:
         self.quotes[symbol] = normalized
         if self._redis:
             try:
-                await self._redis.set(f"tradeo:quote:{symbol}", json.dumps(normalized, default=str), ex=86400)
-                await self._redis.xadd("tradeo:market:quotes", {"symbol": symbol, "quote": json.dumps(normalized, default=str)}, maxlen=100000, approximate=True)
+                await self._redis.set(f"quantx:quote:{symbol}", json.dumps(normalized, default=str), ex=86400)
+                await self._redis.xadd("quantx:market:quotes", {"symbol": symbol, "quote": json.dumps(normalized, default=str)}, maxlen=100000, approximate=True)
             except Exception:
                 log.exception("Could not persist market quote to Redis")
         if self.on_quote:

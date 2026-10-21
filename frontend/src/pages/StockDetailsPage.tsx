@@ -18,7 +18,7 @@ export function StockDetailsPage() {
   const { symbols: saved, toggle } = useWatchlist();
   const [instrument, setInstrument] = useState<Instrument | null | undefined>(undefined);
   const [side, setSide] = useState<OrderSide>('BUY');
-  const [product, setProduct] = useState<OrderProduct>((localStorage.getItem('tradeo_default_product') as OrderProduct) || 'MIS');
+  const [product, setProduct] = useState<OrderProduct>((localStorage.getItem('quantx_default_product') as OrderProduct) || 'MIS');
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [quantity, setQuantity] = useState('1');
   const [limitPrice, setLimitPrice] = useState('');
@@ -82,7 +82,7 @@ export function StockDetailsPage() {
     event.preventDefault();
     if (!instrument || !canSubmitOrder) return;
 
-    const confirm = localStorage.getItem('tradeo_confirm_orders') !== 'false';
+    const confirm = localStorage.getItem('quantx_confirm_orders') !== 'false';
     if (confirm && !window.confirm(`Are you sure you want to ${side} ${quantity} shares of ${instrument.symbol}?`)) {
       return;
     }
@@ -161,7 +161,7 @@ export function StockDetailsPage() {
         <section className="trade-panel trade-stock-facts"><span className="trade-section-kicker">INSTRUMENT DETAILS</span><div><span>Symbol</span><strong>{instrument.symbol}</strong></div><div><span>Exchange</span><strong>{instrument.exchange}</strong></div><div><span>Segment</span><strong>{instrument.instrument_type}</strong></div><div><span>Lot size</span><strong>{instrument.lot_size} shares</strong></div><div><span>Tick size</span><strong>{(Number(instrument.tick_size_paise ?? 1) / 100).toFixed(2)}</strong></div></section>
       </div>
 
-      <form className="trade-panel trade-ticket trade-stock-ticket" onSubmit={submitOrder}><div className="trade-panel-heading"><div><span className="trade-section-kicker">PAPER EXECUTION</span><h2>Place an order</h2></div><span className="trade-practice-mark"><ShieldCheck size={14} /> SIMULATED</span></div><p className="trade-ticket-note">Review the order terms. Tradeo never routes your order to the broker.</p>
+      <form className="trade-panel trade-ticket trade-stock-ticket" onSubmit={submitOrder}><div className="trade-panel-heading"><div><span className="trade-section-kicker">PAPER EXECUTION</span><h2>Place an order</h2></div><span className="trade-practice-mark"><ShieldCheck size={14} /> SIMULATED</span></div><p className="trade-ticket-note">Review the order terms. Quantx never routes your order to the broker.</p>
         <div className="trade-side-switch"><button type="button" className={side === 'BUY' ? 'buy-active' : ''} onClick={() => setSide('BUY')}>Buy</button><button type="button" className={side === 'SELL' ? 'sell-active' : ''} onClick={() => setSide('SELL')}>Sell</button></div>
         <label className="trade-form-label">PRODUCT<select value={product} onChange={(event) => setProduct(event.target.value as OrderProduct)}><option value="MIS">Intraday (MIS)</option><option value="CNC">Delivery (CNC)</option></select></label>
         <label className="trade-form-label">ORDER TYPE<select value={orderType} onChange={(event) => setOrderType(event.target.value as OrderType)}><option value="MARKET">Market</option><option value="LIMIT">Limit</option><option value="SL">Stop-loss limit</option><option value="SL-M">Stop-loss market</option></select></label>
