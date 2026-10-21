@@ -20,7 +20,7 @@ ACTION_LABELS = {
     "portfolio": "View portfolio", "holdings": "View holdings", "positions": "View positions",
     "orders": "Open orders", "stress": "Open Market Stress", "recovery": "Open Recovery Shield",
     "learn": "Open Learn", "notifications": "Open notifications", "account": "Practice account",
-    "profile": "Profile & settings", "authentication": "Sign in and account setup", "workspace": "Back to overview",
+    "profile": "Open profile", "settings": "Open settings", "authentication": "Sign in and account setup", "workspace": "Back to overview",
 }
 
 

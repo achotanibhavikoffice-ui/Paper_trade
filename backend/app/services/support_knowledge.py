@@ -83,8 +83,12 @@ FEATURES = (
         "Practice Account displays available virtual cash, the starting capital, account status and currency, account number, creation date, and the Cash Audit Ledger. The ledger records the initial virtual capital grant and subsequent simulated trade debits, credits, charges, and adjustments. The chosen starting balance is virtual and orders/fills never use real money."
     ),
     Feature(
-        "profile", "Profile & Settings", "/profile", ("profile", "settings", "display name", "trading preference", "dark mode", "password"),
-        "Profile & Settings manages the display name, account preferences, and sign-in/security options available to the user. The email is the sign-in identity. Dark mode is a workspace appearance toggle in the left navigation; Settings currently opens Profile & Settings. Password recovery starts from the sign-in page."
+        "settings", "Settings", "/settings", ("settings", "appearance", "theme", "dark mode", "light mode", "color theme"),
+        "Settings is a separate workspace page for appearance preferences. Choose Light mode or Dark mode there; the theme applies immediately across the workspace and is saved on this device. Profile is a separate page for personal information, trading preferences, and sign-in security."
+    ),
+    Feature(
+        "profile", "Profile", "/profile", ("profile", "display name", "trading preference", "personal information", "password"),
+        "Profile manages the display name, trading preferences, and sign-in/security options available to the user. The email is the sign-in identity. Appearance and theme preferences are managed separately in Settings. Password recovery starts from the sign-in page."
     ),
     Feature(
         "authentication", "Sign-in and account setup", "/login", ("sign in", "login", "register", "create account", "capital slider", "forgot password"),
@@ -92,7 +96,7 @@ FEATURES = (
     ),
     Feature(
         "workspace", "Workspace navigation and controls", "/dashboard", ("sidebar", "navigation", "workspace menu", "top bar", "global search", "theme", "dark mode", "help and support"),
-        "The left navigation opens Overview, Explore, Market News, Watchlist, Portfolio, Orders, What-if Lab, Market Stress, Recovery Shield, Learn, Notifications, Practice Account, and Profile & Settings. The top bar has global stock search, a market-source/status badge, available virtual cash, notifications, and the profile menu. The moon/sun control switches light and dark appearance. Help & support opens this guide. On small screens, use the menu button to open navigation and the bottom tabs for Home, Explore, Watchlist, and Portfolio."
+        "The left navigation opens Overview, Explore, Market News, Watchlist, Portfolio, Orders, What-if Lab, Market Stress, Recovery Shield, Learn, Notifications, Practice Account, and Profile. Settings is a separate destination near the bottom of the sidebar and controls the light or dark appearance. The top bar has global stock search, a market-source/status badge, available virtual cash, notifications, and the profile menu. Help & support opens this guide. On small screens, use the menu button to open navigation and the bottom tabs for Home, Explore, Watchlist, and Portfolio."
     ),
 )
 

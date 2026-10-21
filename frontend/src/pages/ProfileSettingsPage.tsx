@@ -71,9 +71,9 @@ export function ProfileSettingsPage({ user, onAuth }: { user: User; onAuth: (use
   return (
     <>
       <PageHeader
-        title="Profile & Settings"
+        title="Profile"
         eyebrow="YOUR ACCOUNT"
-        description="Manage your display name, sign-in credentials, and trading preferences."
+        description="Manage your display name, account preferences, and sign-in security."
         breadcrumbs={[{ label: 'Profile' }]}
       />
 

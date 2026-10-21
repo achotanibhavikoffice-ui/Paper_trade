@@ -12,10 +12,8 @@ import {
   Flame,
   LayoutDashboard,
   LogOut,
-  Moon,
   Newspaper,
   RotateCcw,
-  Sun,
   Search,
   Settings2,
   ShieldCheck,
@@ -49,7 +47,7 @@ const navItems = [
   { label: 'Learn', path: '/learn', Icon: BookOpen },
   { label: 'Notifications', path: '/notifications', Icon: Bell },
   { label: 'Practice Account', path: '/account', Icon: ShieldCheck },
-  { label: 'Profile & Settings', path: '/profile', Icon: UserRound },
+  { label: 'Profile', path: '/profile', Icon: UserRound },
 ];
 
 export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
@@ -61,21 +59,6 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'));
-
-  const toggleDarkMode = () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    setDarkMode(isDark);
-    localStorage.setItem('quantx_theme', isDark ? 'dark' : 'light');
-  };
-
-  useEffect(() => {
-    if (localStorage.getItem('quantx_theme') === 'dark') {
-      document.documentElement.classList.add('dark');
-      setDarkMode(true);
-    }
-  }, []);
-
   useEffect(() => {
     if (!user) return;
     accountApi.getAccount().then(setAccount).catch(() => setAccount(null));
@@ -100,7 +83,7 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
       ? location.pathname === '/dashboard'
       : location.pathname.startsWith(item.path)
   );
-  const currentTitle = currentNavItem ? currentNavItem.label : location.pathname.startsWith('/stocks/') ? 'Stock details' : 'Workspace';
+  const currentTitle = location.pathname === '/settings' ? 'Settings' : currentNavItem ? currentNavItem.label : location.pathname.startsWith('/stocks/') ? 'Stock details' : 'Workspace';
 
   return (
     <div className="app-shell">
@@ -158,13 +141,9 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
             <CircleHelp size={17} />
             <span>Help & support</span>
           </button>
-          <button className="nav-link" onClick={() => navigate('/profile')}>
+          <button className={`nav-link ${location.pathname === '/settings' ? 'nav-active' : ''}`} onClick={() => navigate('/settings')}>
             <Settings2 size={17} />
             <span>Settings</span>
-          </button>
-          <button className="nav-link" onClick={toggleDarkMode}>
-            {darkMode ? <Sun size={17} /> : <Moon size={17} />}
-            <span>{darkMode ? 'Light mode' : 'Dark mode'}</span>
           </button>
 
           <div className="profile-row">
@@ -273,7 +252,16 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2 mt-1"
                   >
-                    <UserRound size={14} /> Profile & Settings
+                    <UserRound size={14} /> Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      navigate('/settings');
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Settings2 size={14} /> Settings
                   </button>
                   <button
                     onClick={() => {

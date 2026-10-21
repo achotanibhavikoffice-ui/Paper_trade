@@ -190,11 +190,13 @@ export const AccountPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100 ">
                 {" "}
                 {ledger.map((entry) => {
+                  const entryAmount = Number(entry.amount);
                   const isCredit = [
                     "INITIAL_CAPITAL",
                     "TRADE_CREDIT",
                     "RESET",
-                  ].includes(entry.entry_type);
+                  ].includes(entry.entry_type) ||
+                    (entry.entry_type === "ADJUSTMENT" && entryAmount >= 0);
                   return (
                     <tr
                       key={entry.id}
@@ -228,7 +230,7 @@ export const AccountPage: React.FC = () => {
                       >
                         {" "}
                         {isCredit ? "+" : "-"}
-                        {formatINR(entry.amount)}{" "}
+                        {formatINR(Math.abs(entryAmount))}{" "}
                       </td>{" "}
                       <td className="px-4 py-3 text-right font-mono text-slate-700 ">
                         {" "}

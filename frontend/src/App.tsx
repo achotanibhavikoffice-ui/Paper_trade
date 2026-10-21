@@ -26,6 +26,7 @@ import { LearnPage } from './pages/LearnPage';
 import { LessonDetailsPage } from './pages/LessonDetailsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { AccountPage } from './pages/AccountPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { CapitalSetupPage } from './pages/CapitalSetupPage';
@@ -261,6 +262,15 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ProfileSettingsPage user={user!} onAuth={setUser} />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

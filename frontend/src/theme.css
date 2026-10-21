@@ -1,0 +1,537 @@
+/* The workspace theme is driven by html.dark; keep overrides after component styles. */
+html.dark {
+  color-scheme: dark;
+  --theme-canvas: #101820;
+  --theme-surface: #17232d;
+  --theme-raised: #1d2b36;
+  --theme-line: #2b3a45;
+  --theme-text: #e6edf2;
+  --theme-muted: #a1b0bc;
+  background: var(--theme-canvas);
+  color: var(--theme-text);
+}
+
+html.dark body,
+html.dark .app-shell,
+html.dark .main-area {
+  background: var(--theme-canvas);
+  color: var(--theme-text);
+}
+
+html.dark .sidebar,
+html.dark .topbar,
+html.dark .mobile-tabbar,
+html.dark .panel,
+html.dark .stat-card,
+html.dark .account-card,
+html.dark .profile-summary,
+html.dark .account-page,
+html.dark .settings-card,
+html.dark .trade-mover-card,
+html.dark .notification-card,
+html.dark .lesson-card,
+html.dark .search-modal,
+html.dark [role='dialog'] {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-line);
+  color: var(--theme-text);
+}
+
+html.dark .content-wrap .bg-white,
+html.dark .content-wrap .bg-slate-50,
+html.dark .content-wrap .bg-slate-100,
+html.dark .content-wrap .bg-gray-50,
+html.dark .content-wrap .bg-gray-100,
+html.dark .content-wrap [class*='bg-white/'] {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-line);
+}
+
+html.dark .workspace-switch,
+html.dark .account-card .bg-slate-50,
+html.dark .account-card .bg-white,
+html.dark .table-head,
+html.dark .side-nav .nav-link:hover,
+html.dark .profile-row,
+html.dark .settings-theme-option,
+html.dark .settings-current {
+  background-color: var(--theme-raised);
+  border-color: var(--theme-line);
+}
+
+html.dark .content-wrap h1,
+html.dark .content-wrap h2,
+html.dark .content-wrap h3,
+html.dark .content-wrap h4,
+html.dark .content-wrap strong,
+html.dark .content-wrap .text-slate-900,
+html.dark .content-wrap .text-slate-800,
+html.dark .content-wrap .text-slate-700 {
+  color: var(--theme-text);
+}
+
+html.dark .content-wrap p,
+html.dark .content-wrap label,
+html.dark .content-wrap small,
+html.dark .content-wrap td,
+html.dark .content-wrap th,
+html.dark .content-wrap .text-slate-600,
+html.dark .content-wrap .text-slate-500,
+html.dark .content-wrap .text-slate-400,
+html.dark .content-wrap .text-gray-500,
+html.dark .content-wrap .text-gray-600 {
+  color: var(--theme-muted);
+}
+
+html.dark .content-wrap [class*='text-emerald-'],
+html.dark .content-wrap [class*='text-teal-'],
+html.dark .content-wrap [class*='text-green-'],
+html.dark .positive-text,
+html.dark .trade-positive,
+html.dark .trade-mover-pill.up {
+  color: #5bd0a8;
+}
+
+html.dark .content-wrap [class*='text-rose-'],
+html.dark .content-wrap [class*='text-red-'],
+html.dark .negative-text,
+html.dark .trade-negative,
+html.dark .trade-mover-pill.down {
+  color: #ff8989;
+}
+
+html.dark .text-white,
+html.dark .content-wrap .text-white,
+html.dark .bg-emerald-600,
+html.dark .bg-teal-600,
+html.dark .button-primary,
+html.dark .button-dark,
+html.dark .account-save,
+html.dark .trade-submit {
+  color: #fff;
+}
+
+html.dark .content-wrap input,
+html.dark .content-wrap select,
+html.dark .content-wrap textarea,
+html.dark .topbar input,
+html.dark .order-type,
+html.dark .stepper,
+html.dark .symbol-select,
+html.dark .account-form input {
+  color-scheme: dark;
+  background-color: #111c25;
+  border-color: var(--theme-line);
+  color: var(--theme-text);
+}
+
+html.dark .content-wrap input::placeholder,
+html.dark .content-wrap textarea::placeholder {
+  color: #8293a0;
+}
+
+html.dark .content-wrap input:focus,
+html.dark .content-wrap select:focus,
+html.dark .content-wrap textarea:focus {
+  border-color: #38a98b;
+  box-shadow: 0 0 0 3px #087f7233;
+}
+
+html.dark .nav-link { color: #aab8c2; }
+html.dark .nav-link svg { color: #91a2ad; }
+html.dark .nav-link:hover,
+html.dark .nav-active { background: #203a3a; color: #75d4b4; }
+html.dark .nav-link:hover svg,
+html.dark .nav-active svg { color: #75d4b4; }
+html.dark .workspace-copy strong,
+html.dark .profile-copy strong,
+html.dark .breadcrumb strong { color: var(--theme-text); }
+html.dark .workspace-copy small,
+html.dark .profile-copy small,
+html.dark .breadcrumb span { color: var(--theme-muted); }
+html.dark .topbar { border-color: var(--theme-line); }
+html.dark .topbar .bg-slate-100,
+html.dark .topbar .bg-white { background-color: var(--theme-raised); border-color: var(--theme-line); }
+html.dark .topbar .text-slate-500 { color: var(--theme-muted); }
+html.dark .mobile-tabbar { border-color: var(--theme-line); }
+html.dark .mobile-tabbar button { color: #aab8c2; }
+html.dark .mobile-tabbar button.mobile-tab-active { color: #75d4b4; }
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .content-wrap hr { border-color: var(--theme-line); }
+html.dark .account-card-heading,
+html.dark .security-row,
+html.dark .account-meta,
+html.dark .settings-card-heading { border-color: var(--theme-line); }
+html.dark .account-card-heading h2,
+html.dark .profile-summary h2,
+html.dark .security-row strong,
+html.dark .account-meta strong { color: var(--theme-text); }
+html.dark .account-card-heading p,
+html.dark .profile-summary p,
+html.dark .security-row small,
+html.dark .account-meta span,
+html.dark .account-page .account-form label { color: var(--theme-muted); }
+html.dark .account-readonly input { background: #202d37; color: #aebbc5; }
+html.dark .page-header,
+html.dark .breadcrumb { color: var(--theme-text); }
+html.dark .trade-equity-card { background: #0b131a; border-color: #0b131a; }
+html.dark .trade-mover-card { background: var(--theme-surface); }
+html.dark .trade-mover-header strong,
+html.dark .trade-mover-price { color: var(--theme-text); }
+html.dark .trade-mover-header small,
+html.dark .trade-mover-volume { color: var(--theme-muted); }
+html.dark .chart-gridline,
+html.dark .table-head,
+html.dark .holding-row,
+html.dark .trade-table th,
+html.dark .trade-table td { border-color: var(--theme-line); }
+html.dark .performance-chart { color: #49c6a1; }
+html.dark .settings-eyebrow { color: #7ed9bd; }
+html.dark .settings-theme-option { color: var(--theme-text); }
+html.dark .settings-theme-option.selected { border-color: #39a98b; box-shadow: 0 0 0 1px #39a98b; }
+html.dark .settings-theme-option strong { color: var(--theme-text); }
+html.dark .settings-theme-option small,
+html.dark .settings-note { color: var(--theme-muted); }
+html.dark .settings-theme-icon { background: #203b3a; color: #79d8b8; }
+html.dark .settings-theme-check { color: #79d8b8; }
+
+.settings-card {
+  max-width: 920px;
+  padding: 25px;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px #14253808;
+}
+.settings-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf0f4;
+}
+.settings-eyebrow { color: #087f72; font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+.settings-card-heading h2 { margin: 7px 0 5px; color: #142538; font: 700 20px 'Manrope', sans-serif; }
+.settings-card-heading p { margin: 0; color: #69798e; font-size: 13px; line-height: 1.6; }
+.settings-current { display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 8px 10px; border: 1px solid #e3e8ef; border-radius: 999px; background: #f8faf9; color: #53665e; font-size: 12px; font-weight: 700; }
+.settings-current i { width: 7px; height: 7px; border-radius: 50%; background: #1b9a72; }
+.settings-theme-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-top: 20px; }
+.settings-theme-option { min-height: 94px; display: flex; align-items: center; gap: 13px; padding: 16px; border: 1px solid #e0e7e3; border-radius: 9px; background: #fff; text-align: left; transition: border-color .18s,background .18s,box-shadow .18s; }
+.settings-theme-option:hover { border-color: #79b5a1; }
+.settings-theme-option.selected { border-color: #168b73; box-shadow: 0 0 0 1px #168b73; background: #f7fbf9; }
+.settings-theme-icon { width: 41px; height: 41px; display: grid; place-items: center; flex: none; border-radius: 9px; background: #e7f3ef; color: #087f72; }
+.settings-theme-copy { display: grid; gap: 5px; flex: 1; }
+.settings-theme-copy strong { color: #203149; font-size: 14px; }
+.settings-theme-copy small { color: #718197; font-size: 12px; line-height: 1.45; }
+.settings-theme-check { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid #d9e2dc; border-radius: 50%; color: #087f72; }
+.settings-theme-option.selected .settings-theme-check { border-color: #168b73; background: #168b73; color: white; }
+.settings-note { margin: 16px 0 0; color: #8290a2; font-size: 12px; }
+
+@media (max-width: 640px) {
+  .settings-card { padding: 19px 15px; }
+  .settings-card-heading { flex-direction: column; }
+  .settings-theme-options { grid-template-columns: 1fr; }
+}
+
+/* Trading tools use their own component palette instead of Tailwind surfaces. */
+html.dark .trade-page {
+  --trade-ink: #e6edf2;
+  --trade-muted: #a5b4bf;
+  --trade-line: #2d3d48;
+  --trade-paper: #17232d;
+  --trade-canvas: #101820;
+  color: #d8e2e9;
+}
+html.dark .trade-page .trade-panel,
+html.dark .trade-page .trade-metric-card,
+html.dark .trade-page .trade-market-tile,
+html.dark .trade-page .tv-chart-panel,
+html.dark .trade-page .trade-session-card,
+html.dark .trade-page .trade-shock-row,
+html.dark .trade-page .trade-scenario-metrics > div,
+html.dark .trade-page .trade-market-card {
+  background: #17232d !important;
+  border-color: #2d3d48 !important;
+  color: #d8e2e9;
+}
+html.dark .trade-page .trade-stress-panel,
+html.dark .trade-page .trade-panel[style*='background'] {
+  background: #1a252e !important;
+  border-color: #394650 !important;
+}
+html.dark .trade-page .trade-panel div[style*='background: rgb(255, 255, 255)'],
+html.dark .trade-page .trade-panel div[style*='background: rgb(248, 250, 252)'],
+html.dark .trade-page .trade-panel div[style*='background: rgb(248, 250, 249)'] {
+  background-color: #202d37 !important;
+  border-color: #354550 !important;
+}
+html.dark .trade-page .trade-page-heading h1,
+html.dark .trade-page .trade-welcome h1,
+html.dark .trade-page .trade-panel h3,
+html.dark .trade-page .trade-panel strong,
+html.dark .trade-page .trade-panel-heading h2,
+html.dark .trade-page .trade-metric-card > strong,
+html.dark .trade-page .trade-empty strong,
+html.dark .trade-page .trade-table td,
+html.dark .trade-page .trade-table td strong,
+html.dark .trade-page .trade-allocation-row strong,
+html.dark .trade-page .trade-allocation-row b,
+html.dark .trade-page .trade-mini-list button strong,
+html.dark .trade-page .trade-mini-list button b,
+html.dark .trade-page .trade-session-card strong,
+html.dark .trade-page .trade-market-tile strong,
+html.dark .trade-page .trade-market-card strong,
+html.dark .trade-page .trade-scenario-metrics strong,
+html.dark .trade-page .trade-timeline li strong {
+  color: #e6edf2 !important;
+}
+html.dark .trade-page .trade-subtitle,
+html.dark .trade-page .trade-panel p,
+html.dark .trade-page .trade-empty p,
+html.dark .trade-page .trade-metric-card > small,
+html.dark .trade-page .trade-card-label,
+html.dark .trade-page .trade-section-kicker,
+html.dark .trade-page .trade-eyebrow,
+html.dark .trade-page .trade-table th,
+html.dark .trade-page .trade-table td small,
+html.dark .trade-page .trade-allocation-row span,
+html.dark .trade-page .trade-mini-list button small,
+html.dark .trade-page .trade-summary-grid span,
+html.dark .trade-page .trade-summary-grid strong,
+html.dark .trade-page .trade-session-card span,
+html.dark .trade-page .trade-session-card p,
+html.dark .trade-page .trade-market-tile span,
+html.dark .trade-page .trade-market-tile small,
+html.dark .trade-page .trade-market-card small,
+html.dark .trade-page .trade-scenario-metrics small,
+html.dark .trade-page .trade-timeline li span,
+html.dark .trade-page .trade-timeline li small,
+html.dark .trade-page .trade-form-label,
+html.dark .trade-page .trade-form-footnote,
+html.dark .trade-page .trade-compliance-note,
+html.dark .trade-page .trade-inline-empty {
+  color: #a5b4bf !important;
+}
+html.dark .trade-page .trade-primary-button,
+html.dark .trade-page .trade-submit-button,
+html.dark .trade-page .trade-submit,
+html.dark .trade-page .trade-equity-card,
+html.dark .trade-page .trade-equity-card * {
+  color: #f4f8fa;
+}
+html.dark .trade-page .trade-secondary-button,
+html.dark .trade-page .trade-cancel-button,
+html.dark .trade-page .trade-back-button {
+  background-color: #202d37 !important;
+  border-color: #3a4b56 !important;
+  color: #dce6ec !important;
+}
+html.dark .trade-page .trade-secondary-button:hover,
+html.dark .trade-page .trade-cancel-button:hover {
+  background-color: #293943 !important;
+  border-color: #527168 !important;
+}
+html.dark .trade-page .trade-mini-list button,
+html.dark .trade-page .trade-table tbody tr:hover {
+  background-color: #1d2a34 !important;
+}
+html.dark .trade-page .trade-mini-list button,
+html.dark .trade-page .trade-table td,
+html.dark .trade-page .trade-table th,
+html.dark .trade-page .trade-detail-actions,
+html.dark .trade-page .trade-row-actions,
+html.dark .trade-page .trade-quote-line,
+html.dark .trade-page .trade-order-total,
+html.dark .trade-page .trade-timeline li:before {
+  border-color: #2d3d48 !important;
+}
+html.dark .trade-page .trade-product-chip,
+html.dark .trade-page .trade-status-chip,
+html.dark .trade-page .trade-count-chip {
+  background-color: #203b37;
+  color: #8be0c3;
+}
+html.dark .trade-page .trade-product-chip.mis,
+html.dark .trade-page .trade-status-chip.open,
+html.dark .trade-page .trade-status-chip.partially_filled {
+  background-color: #45371f;
+  color: #f0c76e;
+}
+html.dark .trade-page .trade-status-chip.cancelled,
+html.dark .trade-page .trade-status-chip.rejected {
+  background-color: #3b292a;
+  color: #e6a4a1;
+}
+html.dark .trade-page .trade-form-label input,
+html.dark .trade-page .trade-form-label select,
+html.dark .trade-page .trade-shock-control input,
+html.dark .trade-page .trade-search-box,
+html.dark .trade-page .trade-search-box input,
+html.dark .trade-page .trade-side-switch,
+html.dark .trade-page .trade-scenario-metrics > div {
+  background-color: #111c25 !important;
+  border-color: #354550 !important;
+  color: #e0e8ed !important;
+}
+html.dark .trade-page .trade-side-switch button { color: #b2c0c9; }
+html.dark .trade-page .trade-side-switch button.buy-active { background: #1e493d; color: #8be0c3; }
+html.dark .trade-page .trade-side-switch button.sell-active { background: #4a2d30; color: #ffaaa5; }
+html.dark .trade-page .trade-positive { color: #5bd0a8 !important; }
+html.dark .trade-page .trade-negative { color: #ff8989 !important; }
+html.dark .trade-page .trade-panel [style*='color: rgb(15, 23, 42)'],
+html.dark .trade-page .trade-panel [style*='color: rgb(22, 38, 58)'] { color: #e6edf2 !important; }
+html.dark .trade-page .trade-notice { background-color: #202d37; color: #dce6ec; }
+html.dark .trade-page .trade-audit-note { background-color: #202d37; color: #b5c2ca; }
+html.dark .trade-page .trade-session-icon,
+html.dark .trade-page .trade-empty-icon { background-color: #203b37; }
+html.dark .trade-page .trade-equity-card { background-color: #0b131a !important; border-color: #0b131a !important; }
+
+/* Contrast fixes for the Stress, What-if, Explore, and Orders layouts. */
+html.dark .content-wrap .text-black,
+html.dark .content-wrap [class~='text-black'] {
+  color: #e4edf2 !important;
+}
+html.dark .content-wrap [class*='bg-white/'],
+html.dark .content-wrap [class*='bg-slate-50/'],
+html.dark .content-wrap [class*='bg-gray-50/'] {
+  background-color: #17232d !important;
+  border-color: #344550 !important;
+}
+html.dark .trade-page .trade-movers-panel {
+  background: #17232d !important;
+  border-color: #344550 !important;
+}
+html.dark .trade-page .trade-movers-panel .trade-panel-heading h2,
+html.dark .trade-page .trade-movers-panel .trade-section-kicker {
+  color: #e6edf2 !important;
+}
+html.dark .trade-page .trade-movers-panel .trade-mover-card {
+  background: #202d37 !important;
+  border-color: #354651 !important;
+}
+html.dark .trade-page .trade-movers-panel .trade-mover-header strong,
+html.dark .trade-page .trade-movers-panel .trade-mover-price {
+  color: #edf3f6 !important;
+}
+html.dark .trade-page .trade-movers-panel .trade-mover-header small,
+html.dark .trade-page .trade-movers-panel .trade-mover-volume {
+  color: #b0bec8 !important;
+}
+html.dark .trade-page .trade-mover-tabs {
+  background: #202d37 !important;
+}
+html.dark .trade-page .trade-mover-tabs button {
+  color: #b8c5cd !important;
+}
+html.dark .trade-page .trade-mover-tabs button.active {
+  background: #145c51 !important;
+  color: #effbf6 !important;
+}
+html.dark .trade-page .trade-order-stats > div {
+  background: #17232d !important;
+  border-color: #344550 !important;
+}
+html.dark .trade-page .trade-order-stats span,
+html.dark .trade-page .trade-order-stats strong {
+  color: #dce6ec !important;
+}
+html.dark .trade-page .trade-orders-panel .trade-filter-tabs button {
+  color: #b7c3cb !important;
+}
+html.dark .trade-page .trade-orders-panel .trade-filter-tabs button.active {
+  background: #203b37 !important;
+  border-color: #32685d !important;
+  color: #8be0c3 !important;
+}
+html.dark .trade-page .trade-orders-panel .trade-row-action,
+html.dark .trade-page .trade-orders-panel .trade-icon-action,
+html.dark .trade-page .trade-orders-panel .trade-star {
+  background: #202d37 !important;
+  border-color: #3a4b56 !important;
+  color: #dce6ec !important;
+}
+html.dark .trade-page .trade-orders-panel .trade-table-footer,
+html.dark .trade-page .trade-orders-panel .trade-data-muted {
+  color: #a5b4bf !important;
+}
+html.dark .trade-page .trade-orders-panel .trade-table-loading span {
+  background: linear-gradient(90deg,#25333e,#2e3e49,#25333e);
+  background-size: 200% 100%;
+}
+html.dark .content-wrap [class*='text-blue-700'] { color: #9bc9ff !important; }
+html.dark .content-wrap [class*='text-amber-700'] { color: #f0cc7b !important; }
+html.dark .content-wrap [class*='text-indigo-700'] { color: #b7b4ff !important; }
+html.dark .trade-page .trade-search-box {
+  background: #111c25 !important;
+  border-color: #3a4b56 !important;
+  color: #b9c7cf !important;
+}
+html.dark .trade-page .trade-search-box input {
+  background: transparent !important;
+  color: #e6edf2 !important;
+}
+html.dark .trade-page .trade-search-box input::placeholder { color: #90a0ab !important; }
+html.dark .trade-page .trade-search-box kbd {
+  background: #202d37 !important;
+  border-color: #3a4b56 !important;
+  color: #b9c7cf !important;
+}
+html.dark .trade-page .trade-sector-filters button {
+  background: #202d37 !important;
+  border-color: #3a4b56 !important;
+  color: #c1cdd4 !important;
+}
+html.dark .trade-page .trade-sector-filters button.active {
+  background: #145c51 !important;
+  border-color: #328875 !important;
+  color: #effbf6 !important;
+}
+
+/* Practice Account cards use component CSS and need their own dark contrast. */
+html.dark .content-wrap .stat-card {
+  background: #17232d !important;
+  border-color: #344550 !important;
+  color: #e6edf2;
+}
+html.dark .content-wrap .stat-label,
+html.dark .content-wrap .stat-foot {
+  color: #aab8c2 !important;
+}
+html.dark .content-wrap .stat-label > svg,
+html.dark .content-wrap .stat-card .tiny-icon {
+  color: #9babb6 !important;
+}
+html.dark .content-wrap .stat-value,
+html.dark .content-wrap .stat-value.positive-text,
+html.dark .content-wrap .stat-value > span,
+html.dark .content-wrap .stat-value.positive-text > span {
+  color: #e6edf2 !important;
+}
+html.dark .content-wrap .stat-value.positive-text { color: #63d4ad !important; }
+html.dark .content-wrap .bg-sky-50 {
+  background-color: #132a38 !important;
+  border-color: #28536a !important;
+}
+html.dark .content-wrap .text-sky-800,
+html.dark .content-wrap .text-sky-600 {
+  color: #a8d9f5 !important;
+}
+html.dark .content-wrap .bg-emerald-50 {
+  background-color: #17372f !important;
+}
+html.dark .content-wrap .border-emerald-200 {
+  border-color: #28644f !important;
+}
+html.dark .content-wrap .bg-rose-50 {
+  background-color: #3a2529 !important;
+}
+html.dark .content-wrap .border-rose-200 {
+  border-color: #714047 !important;
+}
+html.dark .content-wrap .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2b3a45 !important;
+}
