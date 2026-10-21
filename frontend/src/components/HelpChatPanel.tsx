@@ -95,7 +95,7 @@ export function HelpChatPanel({
           <span className="help-chat-avatar"><Bot size={20} /></span>
           <div className="help-chat-title-wrap">
             <strong id="help-chat-title">Quantx Guide</strong>
-            <span><i /> Here to help you use the workspace</span>
+            <span><i /> Market concepts and workspace help</span>
           </div>
           <button className="help-chat-close" onClick={onClose} aria-label="Close help assistant"><X size={19} /></button>
         </header>
@@ -120,7 +120,7 @@ export function HelpChatPanel({
           {messages.length === 1 && !sending && (
             <div className="help-chat-prompts">
               <span>TRY ASKING</span>
-              {promptsForPage(page).map((prompt) => <button key={prompt} onClick={() => void sendMessage(prompt)}>{prompt}<ArrowRight size={13} /></button>)}
+              {[...promptsForPage(page), 'What is market capitalization?'].map((prompt) => <button key={prompt} onClick={() => void sendMessage(prompt)}>{prompt}<ArrowRight size={13} /></button>)}
             </div>
           )}
           {sending && <div className="help-chat-typing"><span><Bot size={15} /></span><i /><i /><i /><small>Thinking</small><LoaderCircle size={13} className="help-chat-spinner" /></div>}
@@ -128,11 +128,11 @@ export function HelpChatPanel({
 
         <form className="help-chat-compose" onSubmit={submit}>
           <label className="sr-only" htmlFor="help-chat-input">Ask Quantx Guide</label>
-          <input id="help-chat-input" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask how to use Quantx…" maxLength={1200} disabled={sending} />
+          <input id="help-chat-input" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask about markets or how to use Quantx…" maxLength={1200} disabled={sending} />
           <button type="submit" aria-label="Send message" disabled={sending || !draft.trim()}><Send size={16} /></button>
           <small><CornerDownLeft size={12} /> Enter to send</small>
         </form>
-        <footer className="help-chat-footer"><MessageCircle size={13} /> Quantx Guide explains the app; market activity and orders are simulated.</footer>
+        <footer className="help-chat-footer"><MessageCircle size={13} /> General market education; Quantx prices and orders may be simulated.</footer>
       </section>
     </div>
   );
