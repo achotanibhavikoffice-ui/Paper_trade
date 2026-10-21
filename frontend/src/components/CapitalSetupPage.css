@@ -1,0 +1,162 @@
+.capital-ruler {
+  position: relative;
+  height: 72px;
+  margin: 20px 12px 0;
+  touch-action: pan-y;
+}
+
+.capital-ruler-rail,
+.capital-ruler-fill {
+  position: absolute;
+  top: 11px;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.capital-ruler-rail {
+  right: 0;
+  background: #dce6e1;
+}
+
+.capital-ruler-fill {
+  z-index: 1;
+  max-width: 100%;
+  background: linear-gradient(90deg, #38b99a, #087f72);
+  pointer-events: none;
+}
+
+.capital-ruler-thumb {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #087f72;
+  box-shadow: 0 1px 6px #0b4f443d;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.capital-ruler-range {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.capital-ruler-range:focus-visible {
+  opacity: 1;
+  height: 22px;
+  appearance: none;
+  background: transparent;
+  outline: 2px solid #087f72;
+  outline-offset: 3px;
+}
+
+.capital-ruler-range:focus-visible::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  appearance: none;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #087f72;
+  box-shadow: 0 1px 6px #0b4f443d;
+}
+
+.capital-ruler-range:focus-visible::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #087f72;
+  box-shadow: 0 1px 6px #0b4f443d;
+}
+
+.capital-ruler-ticks {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+}
+
+.capital-ruler-tick {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 54px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.capital-ruler-tick i {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 1px;
+  height: 9px;
+  background: #a9b9b2;
+  transform: translateX(-50%);
+}
+
+.capital-ruler-tick.major i {
+  top: 6px;
+  width: 2px;
+  height: 13px;
+  background: #71877f;
+}
+
+.capital-ruler-tick.selected i {
+  width: 9px;
+  height: 9px;
+  top: 8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #087f72;
+  box-shadow: 0 0 0 2px #087f7240;
+}
+
+.capital-ruler-tick span {
+  position: absolute;
+  top: 29px;
+  left: 50%;
+  color: #627468;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.capital-ruler-tick:focus-visible {
+  outline: 2px solid #087f72;
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+.capital-ruler-help {
+  margin: 0 0 8px;
+  color: #718174;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .capital-ruler {
+    margin-right: 4px;
+    margin-left: 4px;
+  }
+
+  .capital-ruler-tick span {
+    font-size: 10px;
+  }
+}
