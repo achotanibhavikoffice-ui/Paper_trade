@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+.venv/
+venv/
+ENV/
+env/
+
+# Production Build Outputs
+dist/
+build/
+frontend/dist/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.local
+frontend/.env.*
+!frontend/.env.example
+
+# Python Caches & Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+
+# IDE & Editor Specific Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs & Temporary Data
+*.log
+logs/
+*.sqlite3
+*.db
+frontend/tsconfig.tsbuildinfo
+
+# Large Data & Market Streaming Recordings (>100MB)
+*.jsonl
+*.jsonl.*
+*.parquet
+*.csv.gz
+backend/data/
+backend/data/*
+backend/data/*.jsonl
+backend/data/recorded_market_ticks.jsonl
+backend/data/quote_snapshots.json
+backend/backend/data/
+data/
+

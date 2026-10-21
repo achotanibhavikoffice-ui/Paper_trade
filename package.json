@@ -1,0 +1,13 @@
+{
+  "name": "tradeo",
+  "private": true,
+  "version": "0.1.0",
+  "engines": { "node": ">=20.19.0" },
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "python -m uvicorn app.main:app --reload --app-dir backend --port 4000",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

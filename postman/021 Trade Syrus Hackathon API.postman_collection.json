@@ -1,0 +1,457 @@
+{
+  "info": {
+    "_postman_id": "3af5ef1e-5db1-4300-9177-feb779f3c7ea",
+    "name": "021 Trade Hackathon API",
+    "description": "021 Trade Hackathon developer APIs.\n\nSetup:\n1. Open the collection's Variables tab and set `username` (your UCC, e.g. HACK1234) and `password` (your sign-up password).\n2. Run \"1. Authentication / Login\". The access token is stored in `accessToken` and sent automatically on every other request.\n3. \"Place order\" stores the returned order id in `orderId`, used by modify, cancel and order lookups.\n\nWebsockets (not importable as Postman collection items; in Postman use New > WebSocket):\n- Market data: wss://devapi.021.trade/api/developer/websocket/market?token={{ephemeralKey}}\n- Order updates: wss://devapi.021.trade/api/developer/websocket/orders?token={{ephemeralKey}}\nRun \"Generate ephemeral key\" first. Send a text message such as\n{\"Task\":\"subscribe\",\"Mode\":\"ltp\",\"Instruments\":[[1,2885]]} on the market socket.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (get access token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "token"
+              ]
+            },
+            "description": "Exchanges your UCC (HACK<number>) and sign-up password for an access token valid until the next 5 AM IST. Logging in again revokes the previous token. The token is saved to the `accessToken` collection variable automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "    console.log('accessToken saved, expires at ' + res.data.expiresAt);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Orders",
+      "item": [
+        {
+          "name": "Place order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Places an order. Prices are in paise (₹1 = 100); price 0 = market order. qty positive = buy, negative = sell. exchange: NSE, NSEFO, BSE, BSEFO. product: INTRADAY, CNC (cash only), NRML (F&O only). book: RL or SL (SL needs trigger). validity: Day or IOC. The returned orderId is saved to the `orderId` collection variable.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"exchange\": \"BSE\",\n    \"token\": 5440,\n    \"qty\": 1,\n    \"price\": 0,\n    \"book\": \"RL\",\n    \"trigger\": 0,\n    \"discQuantity\": 0,\n    \"product\": \"CNC\",\n    \"validity\": \"Day\",\n    \"amo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.orderId) {",
+                  "    pm.collectionVariables.set('orderId', res.data.orderId);",
+                  "    console.log('orderId saved: ' + res.data.orderId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modify order",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Modifies a pending order. Send the full new state of the order, not only the changed fields.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"exchange\": \"NSE\",\n    \"token\": 5440,\n    \"qty\": 1,\n    \"price\": 139500,\n    \"book\": \"RL\",\n    \"product\": \"INTRADAY\",\n    \"validity\": \"Day\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Cancels a pending order. exchange, token and product must match the order.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"exchange\": \"NSE\",\n    \"token\": 2561,\n    \"product\": \"INTRADAY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get all orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Today's orders (open and completed), newest first."
+          },
+          "response": []
+        },
+        {
+          "name": "Get order details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "One order, returned as a one-element array; 404 if not found."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Trades",
+      "item": [
+        {
+          "name": "Get all trades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trades"
+              ]
+            },
+            "description": "All of today's trades (fills)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get trades of an order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/trades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{orderId}}",
+                "trades"
+              ]
+            },
+            "description": "Fills of one order; empty array if none yet."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Portfolio",
+      "item": [
+        {
+          "name": "Get positions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portfolio/positions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portfolio",
+                "positions"
+              ]
+            },
+            "description": "Today's positions plus F&O carried forward."
+          },
+          "response": []
+        },
+        {
+          "name": "Convert position product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/portfolio/positions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portfolio",
+                "positions"
+              ]
+            },
+            "description": "Moves an open position between products (e.g. INTRADAY to CNC). You will most likely never need this API.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"exchange\": \"NSE\",\n    \"token\": 2885,\n    \"oldProduct\": \"INTRADAY\",\n    \"newProduct\": \"CNC\",\n    \"qty\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get holdings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/portfolio/holdings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "portfolio",
+                "holdings"
+              ]
+            },
+            "description": "Delivery holdings in your demat."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Market data",
+      "item": [
+        {
+          "name": "Get all instruments (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/instruments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "instruments"
+              ]
+            },
+            "description": "Full instrument list as a gzipped CSV (Postman decompresses it automatically). Use Send and Download to save it as instruments.csv. `token` is the id used in orders and websockets."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate ephemeral key (websockets)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/websocket/ephemeral-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "websocket",
+                "ephemeral-key"
+              ]
+            },
+            "description": "Returns the key to pass as ?token= when opening the websockets. Valid 24 h, checked only at connect. Saved to the `ephemeralKey` collection variable automatically."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('ephemeralKey', res.data.token);",
+                  "    console.log('ephemeralKey saved');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Websockets (add explicitly in Postman)",
+      "description": "Postman cannot import websocket requests from a collection file, so you have to add these explicitly:\n1. Run \"5. Market data / Generate ephemeral key\" first.\n2. In Postman click New > WebSocket.\n3. Paste the URL below (replace {{ephemeralKey}} with the key if it is not filled in), then click Connect.\n\nMarket data: wss://devapi.021.trade/api/developer/websocket/market?token={{ephemeralKey}}\nOrder updates: wss://devapi.021.trade/api/developer/websocket/orders?token={{ephemeralKey}}",
+      "item": [
+        {
+          "name": "Market data websocket (add explicitly via New > WebSocket)",
+          "item": [],
+          "description": "Postman cannot import websocket requests from a collection file, so you have to add these explicitly:\n1. Run \"5. Market data / Generate ephemeral key\" first.\n2. In Postman click New > WebSocket.\n3. Paste the URL below (replace {{ephemeralKey}} with the key if it is not filled in), then click Connect.\n\nURL: wss://devapi.021.trade/api/developer/websocket/market?token={{ephemeralKey}}\n\nAfter connecting, send a text message to subscribe, e.g.\n{\"Task\":\"subscribe\",\"Mode\":\"ltp\",\"Instruments\":[[1,2885]]}"
+        },
+        {
+          "name": "Orders websocket (add explicitly via New > WebSocket)",
+          "item": [],
+          "description": "Postman cannot import websocket requests from a collection file, so you have to add these explicitly:\n1. Run \"5. Market data / Generate ephemeral key\" first.\n2. In Postman click New > WebSocket.\n3. Paste the URL below (replace {{ephemeralKey}} with the key if it is not filled in), then click Connect.\n\nURL: wss://devapi.021.trade/api/developer/websocket/orders?token={{ephemeralKey}}\n\nNothing needs to be sent; your own order and trade events arrive as binary messages."
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://devapi.021.trade/api/developer-api/v1"
+    },
+    {
+      "key": "username",
+      "value": "<YOUR_UCC>"
+    },
+    {
+      "key": "password",
+      "value": "<YOUR_PASSWORD>"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "ephemeralKey",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "wsMarketUrl",
+      "value": "wss://devapi.021.trade/api/developer/websocket/market?token={{ephemeralKey}}"
+    },
+    {
+      "key": "wsOrdersUrl",
+      "value": "wss://devapi.021.trade/api/developer/websocket/orders?token={{ephemeralKey}}"
+    }
+  ]
+}
