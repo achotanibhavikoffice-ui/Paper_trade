@@ -1,11 +1,14 @@
-import { useState, type FormEvent } from 'react';
+﻿import { useState, type FormEvent } from 'react';
 import { ArrowRight, ShieldCheck, Wallet } from 'lucide-react';
 import { accountApi } from '../api';
 import { Brand } from '../components/Brand';
+import '../components/CapitalSetupPage.css';
 
 const MIN_CAPITAL = 100_000;
 const MAX_CAPITAL = 5_000_000;
-const PRESETS = [100_000, 500_000, 1_000_000, 2_500_000, 5_000_000];
+const CAPITAL_STEPS = [100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000, 800_000, 900_000, 1_000_000, 2_000_000, 2_500_000, 3_000_000, 3_500_000, 4_000_000, 4_500_000, 5_000_000];
+const CAPITAL_PRESETS = [100_000, 500_000, 1_000_000, 2_000_000, 2_500_000, 5_000_000];
+const MAJOR_STEPS = new Set([100_000, 500_000, 1_000_000, 2_000_000, 2_500_000, 5_000_000]);
 const SMALL_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
 const TENS_WORDS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 const inr = (value: number) => new Intl.NumberFormat('en-IN', {
@@ -33,22 +36,41 @@ function amountInWords(value: number): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+function nearestCapital(value: number): number {
+  return CAPITAL_STEPS.reduce((closest, step) => Math.abs(step - value) < Math.abs(closest - value) ? step : closest, CAPITAL_STEPS[0]);
+}
+
+function lakhLabel(value: number): string { return `${value / 100_000}L`; }
+
 export function CapitalSetupPage({ onComplete, currentCapital = null }: { onComplete: () => void; currentCapital?: string | null }) {
-  const [amount, setAmount] = useState(currentCapital ?? '');
+  const [amount, setAmount] = useState(() => currentCapital ? String(nearestCapital(Number(currentCapital))) : String(CAPITAL_STEPS[0]));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const numericAmount = Number(amount);
+  const selectedStep = Math.max(0, CAPITAL_STEPS.indexOf(nearestCapital(numericAmount || MIN_CAPITAL)));
+
+  function selectStep(index: number) {
+    setAmount(String(CAPITAL_STEPS[index]));
+    setError('');
+  }
+
+  function snapTypedAmount() {
+    if (!Number.isFinite(numericAmount)) return;
+    setAmount(String(nearestCapital(Math.min(MAX_CAPITAL, Math.max(MIN_CAPITAL, numericAmount)))));
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
-    if (!Number.isInteger(numericAmount) || numericAmount < MIN_CAPITAL || numericAmount > MAX_CAPITAL) {
-      setError('Choose an amount from ₹1,00,000 to ₹50,00,000.');
+    if (!Number.isFinite(numericAmount) || numericAmount < MIN_CAPITAL || numericAmount > MAX_CAPITAL) {
+      setError('Choose an amount from 1 lakh to 50 lakh.');
       return;
     }
+    const selectedAmount = nearestCapital(numericAmount);
+    setAmount(String(selectedAmount));
     setSaving(true);
     try {
-      await accountApi.setInitialCapital(numericAmount);
+      await accountApi.setInitialCapital(selectedAmount);
       onComplete();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not save your starting capital. Please try again.');
@@ -69,12 +91,20 @@ export function CapitalSetupPage({ onComplete, currentCapital = null }: { onComp
           <label htmlFor="starting-capital" style={{ display: 'block', marginBottom: 8, color: '#526176', fontSize: 12, fontWeight: 800, letterSpacing: .7 }}>STARTING BALANCE (₹1 LAKH–₹50 LAKH)</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px', border: '1px solid #cfd9e3', borderRadius: 10, background: '#fff' }}>
             <span aria-hidden="true" style={{ color: '#69798e', fontSize: 22 }}>₹</span>
-            <input id="starting-capital" type="number" min={MIN_CAPITAL} max={MAX_CAPITAL} step="1000" inputMode="numeric" required value={amount} onChange={(event) => setAmount(event.target.value)} style={{ width: '100%', height: 58, border: 0, outline: 0, color: '#142538', fontSize: 22, fontWeight: 700, background: 'transparent' }} />
+            <input id="starting-capital" type="number" min={MIN_CAPITAL} max={MAX_CAPITAL} step="1000" inputMode="numeric" required value={amount} onChange={(event) => setAmount(event.target.value)} onBlur={snapTypedAmount} style={{ width: '100%', height: 58, border: 0, outline: 0, color: '#142538', fontSize: 22, fontWeight: 700, background: 'transparent' }} />
           </div>
-          <input aria-label="Choose starting balance" type="range" min={MIN_CAPITAL} max={MAX_CAPITAL} step="1000" value={Number.isFinite(numericAmount) ? Math.min(MAX_CAPITAL, Math.max(MIN_CAPITAL, numericAmount)) : MIN_CAPITAL} onChange={(event) => setAmount(event.target.value)} style={{ width: '100%', marginTop: 16, accentColor: '#087f72', cursor: 'pointer' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, color: '#8492a2', fontSize: 12 }}><span>₹1 lakh</span><span>₹50 lakh</span></div>
+          <div className="capital-ruler" aria-label="Select a virtual balance">
+            <div className="capital-ruler-rail" />
+            <div className="capital-ruler-fill" style={{ width: `${(selectedStep / (CAPITAL_STEPS.length - 1)) * 100}%` }} />
+            <span className="capital-ruler-thumb" style={{ left: `${(selectedStep / (CAPITAL_STEPS.length - 1)) * 100}%` }} aria-hidden="true" />
+            <input className="capital-ruler-range" type="range" min="0" max={CAPITAL_STEPS.length - 1} step="1" value={selectedStep} onChange={(event) => selectStep(Number(event.target.value))} aria-label="Starting balance ruler" aria-valuetext={`${lakhLabel(CAPITAL_STEPS[selectedStep])} rupees`} />
+            <div className="capital-ruler-ticks">
+              {CAPITAL_STEPS.map((step, index) => <button key={step} type="button" className={`capital-ruler-tick ${MAJOR_STEPS.has(step) ? 'major' : ''} ${selectedStep === index ? 'selected' : ''}`} style={{ left: `${(index / (CAPITAL_STEPS.length - 1)) * 100}%` }} onClick={() => selectStep(index)} aria-label={`Select ${lakhLabel(step)} (${inr(step)})`} aria-pressed={selectedStep === index}><i />{MAJOR_STEPS.has(step) && <span>{lakhLabel(step)}</span>}</button>)}
+            </div>
+          </div>
+          <p className="capital-ruler-help">Drag the thumb or select a tick. The balance snaps to each marked value.</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }} aria-label="Suggested starting balances">
-            {PRESETS.map((preset) => <button key={preset} type="button" onClick={() => setAmount(String(preset))} style={{ padding: '8px 12px', border: '1px solid #dce8e2', borderRadius: 999, background: Number(amount) === preset ? '#e7f3ef' : '#fff', color: '#356458', fontSize: 13, fontWeight: 700 }}>{inr(preset)}</button>)}
+            {CAPITAL_PRESETS.map((preset) => <button key={preset} type="button" onClick={() => selectStep(CAPITAL_STEPS.indexOf(preset))} style={{ padding: '8px 12px', border: '1px solid #dce8e2', borderRadius: 999, background: Number(amount) === preset ? '#e7f3ef' : '#fff', color: '#356458', fontSize: 13, fontWeight: 700 }}>{inr(preset)}</button>)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 20, padding: '14px 16px', borderRadius: 10, background: '#f5f8f6', color: '#69798e', fontSize: 13 }}>
             <span>Your virtual starting balance</span><strong aria-live="polite" style={{ color: '#142538', fontSize: 15, textAlign: 'right' }}>{Number.isInteger(numericAmount) && numericAmount >= MIN_CAPITAL && numericAmount <= MAX_CAPITAL ? <>{inr(numericAmount)}<small style={{ display: 'block', marginTop: 4, color: '#69798e', fontSize: 12, fontWeight: 500 }}>{amountInWords(numericAmount)}</small></> : '—'}</strong>
@@ -89,3 +119,4 @@ export function CapitalSetupPage({ onComplete, currentCapital = null }: { onComp
     </main>
   );
 }
+
