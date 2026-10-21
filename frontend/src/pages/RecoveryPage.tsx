@@ -181,12 +181,12 @@ export function RecoveryPage() {
       <div className="trade-hero-grid four" style={{ marginBottom: 24 }}>
         <div className="trade-metric-card">
           <span className="trade-card-label">CURRENT CASH (PROTECTED)</span>
-          <strong>{formatInr(summary?.cash_balance ?? account?.cash_balance ?? 100000)}</strong>
+          <strong>{summary ? formatInr(summary.cash_balance) : account ? formatInr(account.cash_balance) : "—"}</strong>
           <small>PostgreSQL ledger reconciled</small>
         </div>
         <div className="trade-metric-card">
           <span className="trade-card-label">TOTAL PORTFOLIO EQUITY</span>
-          <strong>{formatInr(summary?.equity ?? 100000)}</strong>
+          <strong>{summary ? formatInr(summary.equity) : "—"}</strong>
           <small>Mark-to-market valuation</small>
         </div>
         <div className="trade-metric-card">

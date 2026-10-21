@@ -21,6 +21,8 @@ from app.routes.market_insights import router as market_insights_router
 from app.routes.recovery import router as recovery_router
 from app.routes.trading import router as trading_router
 from app.services.market_data import market_data
+from app.services.indian_api import indian_api
+from app.services.nse_catalog import NseCatalogError, nse_catalog
 from app.services.paper_engine import paper_engine
 from app.services.provider import provider_client
 
@@ -64,6 +66,7 @@ def migrate_trading_schema() -> None:
     """Apply additive migrations for databases initialized before the live-data milestone."""
     statements = [
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS reserved_cash NUMERIC(14,2) NOT NULL DEFAULT 0.00",
+        "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS capital_configured BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS stress_mode BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE instruments ADD COLUMN IF NOT EXISTS provider_token INTEGER NULL",
         "ALTER TABLE instruments ADD COLUMN IF NOT EXISTS provider_exchange VARCHAR(10) NULL",
@@ -154,12 +157,22 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     if settings.app_env != "test":
         migrate_trading_schema()
 
+    catalog_retry_after = 86400.0
+    if settings.app_env != "test":
+        try:
+            count = await asyncio.to_thread(nse_catalog.sync)
+            logger.info("Loaded %s NSE equity and SME instruments from the official security files", count)
+        except NseCatalogError:
+            logger.exception("NSE equity catalogue synchronization failed; keeping the existing catalogue")
+            catalog_retry_after = 3600.0
+
     async def operations_supervisor() -> None:
         """Keep one process responsible for the provider session and MIS square-off."""
         ist = ZoneInfo("Asia/Kolkata")
         connection = None
         market_started = False
         next_reconcile = 0.0
+        next_catalog_sync = asyncio.get_running_loop().time() + catalog_retry_after
         while True:
             try:
                 if connection is None:
@@ -174,13 +187,25 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
                     logger.info("This process owns the Quantx market-feed and square-off worker lease")
                 else:
                     connection.execute(text("SELECT 1")).scalar()
+                monotonic = asyncio.get_running_loop().time()
+                if monotonic >= next_catalog_sync:
+                    try:
+                        count = await asyncio.to_thread(nse_catalog.sync)
+                        logger.info("Refreshed %s NSE equity and SME instruments", count)
+                        next_catalog_sync = monotonic + 86400
+                    except NseCatalogError:
+                        logger.exception("NSE equity catalogue refresh failed; keeping the existing catalogue")
+                        next_catalog_sync = monotonic + 3600
                 if not market_started:
                     market_data.on_quote = lambda quote: asyncio.to_thread(paper_engine.remember_quote, quote)
-                    if market_data.provider.configured or settings.demo_market_data_enabled:
+                    if market_data.provider.configured or settings.demo_market_data_enabled or indian_api.configured:
                         try:
                             if market_data.provider.configured and settings.market_data_sync_on_startup and not instrument_sync_is_current():
-                                synced = await provider_client.sync_instruments()
-                                logger.info("Synchronized %s instruments from 021", synced)
+                                try:
+                                    synced = await provider_client.sync_instruments()
+                                    logger.info("Synchronized %s instruments from 021", synced)
+                                except Exception:
+                                    logger.exception("021 instrument synchronization failed; starting configured fallback market data")
                             await market_data.start()
                             market_started = True
                         except Exception:
@@ -252,7 +277,7 @@ def health() -> dict[str, str]:
 def readiness() -> dict[str, str | bool]:
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
-    configured = market_data.provider.configured or settings.demo_market_data_enabled
+    configured = market_data.provider.configured or settings.demo_market_data_enabled or indian_api.configured
     connected = market_data.connected
     return {
         "status": "ready" if not settings.market_data_enabled or connected else "degraded",

@@ -19,6 +19,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import Instrument, Order, Position
 from app.services.provider import ProviderClient, provider_client
+from app.services.indian_api import IndianApiError, indian_api
 
 logger = logging.getLogger(__name__)
 log = logging.getLogger("quantx.market")
@@ -116,10 +117,13 @@ class MarketDataService:
         self._default_symbols: set[str] = set()
         self._retained_symbols: set[str] = set()
         self._subscriptions: dict[WebSocket, set[str]] = {}
+        self._indian_api_subscriptions: dict[WebSocket, set[str]] = {}
+        self._indian_api_wakeup = asyncio.Event()
         self._sub_lock = asyncio.Lock()
         self._provider_socket: Any = None
         self._task: asyncio.Task[None] | None = None
         self._demo_task: asyncio.Task[None] | None = None
+        self._indian_api_task: asyncio.Task[None] | None = None
         self._demo_states: dict[str, dict[str, Decimal | int]] = {}
         self._match_task: asyncio.Task[None] | None = None
         self._match_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=10000)
@@ -133,21 +137,31 @@ class MarketDataService:
 
     @property
     def connected(self) -> bool:
-        return self._provider_socket is not None or (self._demo_task is not None and not self._demo_task.done())
+        return (self._provider_socket is not None
+                or (self._demo_task is not None and not self._demo_task.done())
+                or (self._indian_api_task is not None and not self._indian_api_task.done()))
 
     @property
     def mode(self) -> str:
         sources = {quote.get("data_source") for quote in self.quotes.values()}
         has_demo = "demo" in sources
         has_021 = "021" in sources
+        has_indian_api = ("indianapi" in sources
+                          or (self._indian_api_task is not None and not self._indian_api_task.done()))
         if has_demo and has_021:
             return "hybrid"
-        if has_021 or not settings.demo_market_data_enabled:
+        if has_021:
+            return "full"
+        if has_indian_api and has_demo:
+            return "snapshot+demo"
+        if has_indian_api:
+            return "indianapi"
+        if not settings.demo_market_data_enabled:
             return "full"
         return "demo"
 
     async def start(self) -> None:
-        if not self.provider.configured and not settings.demo_market_data_enabled:
+        if not self.provider.configured and not settings.demo_market_data_enabled and not indian_api.configured:
             return
         self._stopping = False
         if settings.redis_url:
@@ -188,6 +202,8 @@ class MarketDataService:
             self._demo_task = asyncio.create_task(self._run_demo(), name="quantx-demo-market-feed")
         if self.provider.configured:
             self._task = asyncio.create_task(self._run(), name="021-market-feed")
+        if indian_api.configured:
+            self._indian_api_task = asyncio.create_task(self._run_indian_api_quotes(), name="indianapi-watchlist-quotes")
 
     async def stop(self) -> None:
         self._stopping = True
@@ -201,6 +217,10 @@ class MarketDataService:
             self._demo_task.cancel()
             await asyncio.gather(self._demo_task, return_exceptions=True)
             self._demo_task = None
+        if self._indian_api_task:
+            self._indian_api_task.cancel()
+            await asyncio.gather(self._indian_api_task, return_exceptions=True)
+            self._indian_api_task = None
         if self._match_task:
             try:
                 await asyncio.wait_for(self._match_queue.join(), timeout=5)
@@ -239,7 +259,7 @@ class MarketDataService:
         old = self._subscriptions.get(websocket, set())
         new_names = set(names) - old
         provider_instruments = [i for i in instruments if i["provider_token"] is not None and i["provider_exchange_code"] is not None]
-        if not settings.demo_market_data_enabled and not provider_instruments:
+        if not settings.demo_market_data_enabled and not provider_instruments and not indian_api.configured:
             raise ValueError("No provider instrument mapping is available for these symbols.")
         if len(self._provider_active | {(i["provider_exchange_code"], i["provider_token"]) for i in provider_instruments if i["symbol"] in new_names}) > self.subscription_limit:
             raise ValueError(f"The shared 021 feed allows {self.subscription_limit} active instruments.")
@@ -248,8 +268,19 @@ class MarketDataService:
         await self._set_provider_subscriptions([item for item in provider_instruments if item["symbol"] in new_names], task="subscribe")
         return [self.quotes[name] for name in names if name in self.quotes]
 
+    def set_indian_api_watchlist(self, websocket: WebSocket, symbols: list[str], enabled: bool) -> None:
+        if not enabled:
+            self._indian_api_subscriptions.pop(websocket, None)
+            return
+        names = {s.strip().upper() for s in symbols if s.strip()}
+        if names:
+            self._indian_api_subscriptions[websocket] = names
+            self._indian_api_wakeup.set()
+
     async def unsubscribe(self, websocket: WebSocket, symbols: list[str]) -> None:
         remove = {s.strip().upper() for s in symbols if s.strip()}
+        self._indian_api_subscriptions.get(websocket, set()).difference_update(remove)
+        self._indian_api_wakeup.set()
         old = self._subscriptions.get(websocket, set())
         old.difference_update(remove)
         active = set().union(*self._subscriptions.values()) if self._subscriptions else set()
@@ -259,6 +290,8 @@ class MarketDataService:
 
     async def remove_client(self, websocket: WebSocket) -> None:
         names = self._subscriptions.pop(websocket, set())
+        self._indian_api_subscriptions.pop(websocket, None)
+        self._indian_api_wakeup.set()
         active = set().union(*self._subscriptions.values()) if self._subscriptions else set()
         released = names - active - self._default_symbols - self._retained_symbols
         if released:
@@ -372,6 +405,15 @@ class MarketDataService:
                 for instrument in instruments:
                     symbol = instrument["symbol"]
                     current = self.quotes.get(symbol)
+                    if current and current.get("data_source") == "indianapi":
+                        stamp = current.get("timestamp")
+                        if isinstance(stamp, str):
+                            try:
+                                stamp = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                            except ValueError:
+                                stamp = None
+                        if isinstance(stamp, datetime) and (now - stamp).total_seconds() < settings.indian_api_quote_poll_seconds + 10:
+                            continue
                     if current and current.get("data_source") == "021":
                         stamp = current.get("timestamp")
                         if isinstance(stamp, str):
@@ -410,6 +452,77 @@ class MarketDataService:
                 log.exception("Synthetic demo market feed update failed")
             await asyncio.sleep(1.4)
 
+    async def _run_indian_api_quotes(self) -> None:
+        """Poll only symbols explicitly subscribed from the user's watchlist."""
+        interval = max(30, settings.indian_api_quote_poll_seconds)
+        limit = max(1, settings.indian_api_quote_max_symbols)
+        semaphore = asyncio.Semaphore(4)
+        while not self._stopping:
+            started = asyncio.get_running_loop().time()
+            self._indian_api_wakeup.clear()
+            symbols = sorted(set().union(*self._indian_api_subscriptions.values()))[:limit] if self._indian_api_subscriptions else []
+            if not symbols:
+                try:
+                    await asyncio.wait_for(self._indian_api_wakeup.wait(), timeout=interval)
+                except asyncio.TimeoutError:
+                    pass
+                continue
+
+            async def fetch(symbol: str) -> None:
+                async with semaphore:
+                    try:
+                        profile = await asyncio.to_thread(indian_api.quote_snapshot, symbol)
+                        if profile.get("stale"):
+                            return
+                        price = profile.get("price", {}).get("nse") or profile.get("price", {}).get("bse")
+                        if price is None or Decimal(str(price)) <= 0:
+                            return
+                        instruments = await asyncio.to_thread(self._find_instruments, [symbol])
+                        if not instruments:
+                            return
+                        instrument = instruments[0]
+                        current = self.quotes.get(symbol)
+                        if current and current.get("data_source") == "021":
+                            stamp = current.get("timestamp")
+                            if isinstance(stamp, str):
+                                try:
+                                    stamp = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                                except ValueError:
+                                    stamp = None
+                            if isinstance(stamp, datetime) and (datetime.now(timezone.utc) - stamp).total_seconds() < settings.market_quote_max_age_seconds:
+                                return
+                        change_pct = profile.get("percent_change")
+                        previous_close = None
+                        if change_pct is not None and Decimal(str(change_pct)) != Decimal("-100"):
+                            previous_close = (Decimal(str(price)) / (Decimal("1") + Decimal(str(change_pct)) / Decimal("100"))).quantize(Decimal("0.01"))
+                        now = datetime.now(timezone.utc)
+                        fetched_at = profile.get("fetched_at")
+                        if isinstance(fetched_at, str):
+                            try:
+                                now = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+                            except ValueError:
+                                pass
+                        await self._record_quote({
+                            "symbol": symbol, "exchange": instrument["exchange"],
+                            "token": instrument["provider_token"] or 0,
+                            "last_price": Decimal(str(price)).quantize(Decimal("0.01")),
+                            "previous_close": previous_close, "open": None, "high": None, "low": None,
+                            "volume": None, "bids": [], "asks": [], "timestamp": now,
+                            "exchange_timestamp": None, "data_source": "indianapi",
+                        })
+                    except IndianApiError as error:
+                        log.warning("IndianAPI quote snapshot failed for %s (%s)", symbol, error.code)
+                    except Exception:
+                        log.exception("IndianAPI quote snapshot processing failed for %s", symbol)
+
+            if symbols:
+                await asyncio.gather(*(fetch(symbol) for symbol in symbols))
+            elapsed = asyncio.get_running_loop().time() - started
+            try:
+                await asyncio.wait_for(self._indian_api_wakeup.wait(), timeout=max(1, interval - elapsed))
+            except asyncio.TimeoutError:
+                pass
+
     async def _publish(self, quote: dict[str, Any]) -> None:
         instrument = self._instrument_by_key.get((quote["exchange_code"], quote["token"]))
         if not instrument:
@@ -438,7 +551,7 @@ class MarketDataService:
         signature = (normalized.get("data_source"), str(normalized.get("last_price")), normalized.get("volume"),
                      tuple((str(x.get("price")), x.get("quantity")) for x in normalized.get("bids", [])),
                      tuple((str(x.get("price")), x.get("quantity")) for x in normalized.get("asks", [])))
-        if previous and signature == self._signatures.get(symbol):
+        if previous and signature == self._signatures.get(symbol) and normalized.get("data_source") != "indianapi":
             return
         self._signatures[symbol] = signature
         if exchange_timestamp:

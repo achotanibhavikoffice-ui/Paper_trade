@@ -85,11 +85,16 @@ class AccountResponse(BaseModel):
     initial_capital: Decimal
     cash_balance: Decimal
     reserved_cash: Decimal = Decimal("0.00")
+    capital_configured: bool = False
     status: str
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CapitalSetupInput(BaseModel):
+    initial_capital: Decimal = Field(ge=100_000, le=5_000_000, max_digits=7, decimal_places=0)
 
 
 class LedgerEntryResponse(BaseModel):

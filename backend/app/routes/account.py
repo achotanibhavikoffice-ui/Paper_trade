@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -7,12 +8,86 @@ from app.models import Account, CashLedger, Instrument, User
 from app.routes.auth import create_initial_account_for_user, get_current_user
 from app.schemas import (
     AccountResponse,
+    CapitalSetupInput,
     InstrumentResponse,
     LedgerEntryResponse,
     PaginatedLedgerResponse,
 )
 
 router = APIRouter(prefix="/api", tags=["account"])
+
+
+@router.put("/account/initial-capital", response_model=AccountResponse)
+def configure_initial_capital(
+    payload: CapitalSetupInput,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AccountResponse:
+    amount = payload.initial_capital.quantize(Decimal("0.01"))
+    account = db.scalar(select(Account).where(Account.user_id == user.id).with_for_update())
+    if account is None:
+        account = create_initial_account_for_user(user, db, amount, capital_configured=True)
+        return AccountResponse.model_validate(account)
+
+    # Registration creates an unconfigured placeholder account so the user can
+    # sign in and choose a balance. Replace that placeholder grant in place;
+    # the selected amount is the initial grant, not a later cash adjustment.
+    if not account.capital_configured:
+        account.initial_capital = amount
+        account.cash_balance = amount
+        account.capital_configured = True
+        initial_entry = db.scalar(
+            select(CashLedger)
+            .where(
+                CashLedger.account_id == account.id,
+                CashLedger.entry_type == "INITIAL_CAPITAL",
+            )
+            .order_by(CashLedger.created_at.asc())
+            .limit(1)
+        )
+        if initial_entry is None:
+            db.add(CashLedger(
+                account_id=account.id,
+                entry_type="INITIAL_CAPITAL",
+                amount=amount,
+                balance_after=amount,
+                description="Initial virtual capital grant",
+                idempotency_key=f"INIT_CAPITAL_{user.id}",
+            ))
+        else:
+            initial_entry.amount = amount
+            initial_entry.balance_after = amount
+            initial_entry.description = "Initial virtual capital grant"
+        db.commit()
+        db.refresh(account)
+        return AccountResponse.model_validate(account)
+
+    if account.capital_configured and account.initial_capital == amount:
+        return AccountResponse.model_validate(account)
+
+    change = amount - account.initial_capital
+    new_cash_balance = account.cash_balance + change
+    if new_cash_balance < account.reserved_cash:
+        minimum = account.initial_capital + account.reserved_cash - account.cash_balance
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Choose at least ₹{minimum:,.2f} to cover existing paper trades and reserved orders.",
+        )
+
+    account.initial_capital = amount
+    account.cash_balance = new_cash_balance
+    account.capital_configured = True
+    if change:
+        db.add(CashLedger(
+            account_id=account.id,
+            entry_type="ADJUSTMENT",
+            amount=change,
+            balance_after=new_cash_balance,
+            description="Virtual starting capital adjusted",
+        ))
+    db.commit()
+    db.refresh(account)
+    return AccountResponse.model_validate(account)
 
 
 @router.get("/account/me", response_model=AccountResponse)

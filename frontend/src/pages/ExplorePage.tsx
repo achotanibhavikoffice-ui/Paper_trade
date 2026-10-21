@@ -7,6 +7,7 @@ import { useWatchlist } from '../hooks/useWatchlist';
 
 const inr = (value: number | string | undefined | null) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(value) || 0);
+const INSTRUMENT_PAGE_SIZE = 500;
 
 const formatVolume = (val: number | null | undefined) => {
   if (!val) return '—';
@@ -22,6 +23,9 @@ export function ExplorePage() {
   const [search, setSearch] = useState('');
   const [sector, setSector] = useState('ALL');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [visibleQuoteSymbols, setVisibleQuoteSymbols] = useState<string[]>([]);
   const [error, setError] = useState('');
   const { symbols: saved, toggle } = useWatchlist();
 
@@ -52,19 +56,56 @@ export function ExplorePage() {
     let active = true;
     setLoading(true);
     const timer = window.setTimeout(() => {
-      accountApi.getInstruments(search, 100).then((rows) => {
-        if (active) { setItems(rows); setError(''); }
+      accountApi.getInstruments(search, INSTRUMENT_PAGE_SIZE).then((rows) => {
+        if (active) { setItems(rows); setHasMore(rows.length === INSTRUMENT_PAGE_SIZE); setError(''); }
       }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load NSE instruments.'); })
         .finally(() => { if (active) setLoading(false); });
     }, search ? 220 : 0);
     return () => { active = false; window.clearTimeout(timer); };
   }, [search]);
 
-  const quoteSymbols = useMemo(() => items.slice(0, 24).map((item) => item.symbol), [items]);
-  const { quotes } = useMarketFeed(quoteSymbols);
+  async function loadMoreInstruments() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const rows = await accountApi.getInstruments(search, INSTRUMENT_PAGE_SIZE, items.length);
+      setItems((current) => [...current, ...rows]);
+      setHasMore(rows.length === INSTRUMENT_PAGE_SIZE);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not load more NSE instruments.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const sectors = useMemo(() => ['ALL', ...new Set(items.map((item) => item.sector).filter((value): value is string => Boolean(value)))], [items]);
+  const filtered = useMemo(() => sector === 'ALL' ? items : items.filter((item) => item.sector === sector), [items, sector]);
+
+  useEffect(() => {
+    const initialSymbols = filtered.slice(0, 24).map((item) => item.symbol);
+    setVisibleQuoteSymbols(initialSymbols);
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-market-symbol]'));
+    if (!('IntersectionObserver' in window) || rows.length === 0) return;
+
+    const visible = new Set(initialSymbols);
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const symbol = (entry.target as HTMLElement).dataset.marketSymbol;
+        if (!symbol) continue;
+        if (entry.isIntersecting) visible.add(symbol);
+        else visible.delete(symbol);
+      }
+      const nextSymbols = [...visible].slice(0, 25);
+      setVisibleQuoteSymbols((current) => current.join(',') === nextSymbols.join(',') ? current : nextSymbols);
+    }, { rootMargin: '160px 0px' });
+    rows.forEach((row) => observer.observe(row));
+    return () => observer.disconnect();
+  }, [filtered]);
+
+  const quoteSymbols = useMemo(() => visibleQuoteSymbols.slice(0, 25), [visibleQuoteSymbols]);
+  const { quotes } = useMarketFeed(quoteSymbols, { pollIndianApi: true });
   const hasPracticeQuotes = Object.values(quotes).some((quote) => quote.data_source === 'demo');
-  const sectors = ['ALL', ...new Set(items.map((item) => item.sector).filter((value): value is string => Boolean(value)))];
-  const filtered = sector === 'ALL' ? items : items.filter((item) => item.sector === sector);
+  const hasIndianApiQuotes = Object.values(quotes).some((quote) => quote.data_source === 'indianapi');
 
   const activeMovers = moverTab === 'active' ? mostActive : moverTab === 'gainers' ? gainers : losers;
 
@@ -74,9 +115,9 @@ export function ExplorePage() {
         <div>
           <p className="trade-eyebrow">NSE CASH MARKET {hasPracticeQuotes && <span className="trade-demo-label">· DATA</span>}</p>
           <h1>Explore equities</h1>
-          <p className="trade-subtitle">Look up supported NSE cash-market instruments, real market movers, and historical charts.</p>
+            <p className="trade-subtitle">Search NSE equity and SME listings. Visible shares request IndianAPI price snapshots and refresh about once per minute.</p>
         </div>
-        <div className="trade-count-chip">{items.length} instruments loaded</div>
+        <div className="trade-count-chip">{items.length}{hasMore ? '+' : ''} instruments loaded</div>
       </header>
 
       {/* Real Top Movers & Trending from IndianAPI */}
@@ -190,7 +231,7 @@ export function ExplorePage() {
                   const change = price !== null && previous > 0 ? ((price - previous) / previous) * 100 : null;
                   const isSaved = saved.includes(item.symbol);
                   return (
-                    <tr key={item.id} onClick={() => navigate(`/stocks/${item.symbol}`)}>
+                    <tr key={item.id} data-market-symbol={item.symbol} onClick={() => navigate(`/stocks/${item.symbol}`)}>
                       <td>
                         <div className="trade-instrument-cell">
                           <button
@@ -204,13 +245,13 @@ export function ExplorePage() {
                         </div>
                       </td>
                       <td>{item.sector || '—'}</td>
-                      <td>{price === null ? <span className="trade-data-muted">Waiting for feed</span> : inr(price)}</td>
+                      <td>{price === null ? <span className="trade-data-muted">Requesting snapshot</span> : <span title={`${quote?.data_source === 'indianapi' ? 'IndianAPI snapshot' : 'Market quote'} · ${new Date(quote!.timestamp).toLocaleString('en-IN')}`}>{inr(price)}</span>}</td>
                       <td className={change === null ? '' : change >= 0 ? 'trade-positive' : 'trade-negative'}>
                         {change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}
                       </td>
                       <td>
                         <span className="trade-depth-count">
-                          {quote ? `${quote.bids.filter((level) => level.quantity > 0).length} bids · ${quote.asks.filter((level) => level.quantity > 0).length} asks` : 'Not connected'}
+                          {quote?.data_source === 'indianapi' ? 'Price only · no depth' : quote ? `${quote.bids.filter((level) => level.quantity > 0).length} bids · ${quote.asks.filter((level) => level.quantity > 0).length} asks` : 'Snapshot pending'}
                         </span>
                       </td>
                       <td>
@@ -226,9 +267,10 @@ export function ExplorePage() {
           </div>
         )}
         <footer className="trade-table-footer">
-          <span>Search any of the 15,000+ NSE equities with real historical charts.</span>
-          <span>{hasPracticeQuotes ? 'Generated practice prices/depth power local paper fills.' : 'Orders are simulated locally.'}</span>
+          <span>NSE equity and SME catalogue. Search by symbol or company name.</span>
+          <span>{hasIndianApiQuotes ? 'IndianAPI snapshots are reference prices; paper orders remain simulated.' : hasPracticeQuotes ? 'Generated practice prices/depth power local paper fills.' : 'Orders are simulated locally.'}</span>
         </footer>
+        {hasMore && <div className="trade-table-footer"><button className="trade-secondary-button" onClick={() => void loadMoreInstruments()} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'Load more instruments'}</button></div>}
       </section>
     </div>
   );

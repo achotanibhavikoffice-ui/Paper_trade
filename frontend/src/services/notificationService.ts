@@ -38,7 +38,7 @@ export const notificationService = {
         {
           id: 'n1',
           title: 'Paper Trading Capital Initialized',
-          message: 'Your account has been granted ₹1,00,000.00 in virtual paper capital.',
+          message: 'Your paper trading account is ready with virtual capital.',
           category: 'ACCOUNT',
           read: false,
           created_at: new Date(Date.now() - 3600000).toISOString(),
