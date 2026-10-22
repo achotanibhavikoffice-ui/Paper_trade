@@ -190,6 +190,29 @@ def normalize_most_active(payload: Any, exchange: str) -> dict[str, Any]:
     return {"exchange": exchange, "items": _movers(payload)}
 
 
+def normalize_indices(payload: Any) -> dict[str, Any]:
+    """Normalize the provider's NSE/BSE index snapshot without guessing missing fields."""
+    rows = payload.get("indices") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        raise IndianApiError("provider_unavailable", "The market-data provider returned an unexpected response.", 502)
+    indices: list[dict[str, Any]] = []
+    for raw in _dicts(rows):
+        name = _text(raw.get("name") or raw.get("index_name"), 80)
+        price = _num(raw.get("price") or raw.get("last_price"))
+        if not name or price is None:
+            continue
+        indices.append({
+            "name": name,
+            "price": price,
+            "percent_change": _num(raw.get("percentChange") if raw.get("percentChange") is not None else raw.get("percent_change")),
+            "net_change": _num(raw.get("netChange") if raw.get("netChange") is not None else raw.get("net_change")),
+            "exchange": _text(raw.get("exchangeType") or raw.get("exchange"), 10),
+            "date": _text(raw.get("date"), 20),
+            "time": _text(raw.get("time"), 20),
+        })
+    return {"indices": indices[:50]}
+
+
 def _extreme(raw: dict[str, Any], field: str) -> dict[str, Any] | None:
     symbol = _ticker(raw.get("ticker"))
     price = _num(raw.get("price"))
@@ -403,6 +426,10 @@ class IndianApiService:
             {},
             lambda payload: normalize_most_active(payload, exchange),
         )
+
+    def indices(self) -> dict[str, Any]:
+        """Cached NSE/BSE index overview for concise market-status answers."""
+        return self._cached(("indices",), settings.indian_api_lists_ttl_seconds, "/indices", {}, normalize_indices)
 
     def week_52(self) -> dict[str, Any]:
         return self._cached(("52week",), settings.indian_api_lists_ttl_seconds, "/fetch_52_week_high_low_data", {}, normalize_52_week)
