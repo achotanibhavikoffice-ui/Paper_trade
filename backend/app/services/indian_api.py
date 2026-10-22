@@ -324,6 +324,8 @@ class IndianApiService:
         self._inflight: dict[tuple[Any, ...], threading.Lock] = {}
         self._cooldown_until = 0.0
         self._cooldown_error: IndianApiError | None = None
+        self._last_error: dict[str, str] | None = None
+        self._last_success_at: str | None = None
 
     def clear(self) -> None:
         with self._cache_lock:
@@ -331,10 +333,36 @@ class IndianApiService:
             self._inflight.clear()
             self._cooldown_until = 0.0
             self._cooldown_error = None
+            self._last_error = None
+            self._last_success_at = None
 
     @property
     def configured(self) -> bool:
         return bool(settings.indian_api_key.strip())
+
+    @property
+    def status(self) -> dict[str, Any]:
+        with self._cache_lock:
+            error = dict(self._last_error) if self._last_error else None
+            last_success_at = self._last_success_at
+            retry_after = max(0, int(self._cooldown_until - time.time()))
+        if not self.configured and error is None:
+            error = {"code": "not_configured", "message": "IndianAPI is not configured on the server."}
+        return {
+            "configured": self.configured,
+            "last_success_at": last_success_at,
+            "last_error": error,
+            "retry_after_seconds": retry_after,
+        }
+
+    def _remember_error(self, error: IndianApiError) -> None:
+        with self._cache_lock:
+            self._last_error = {"code": error.code, "message": error.message}
+
+    def _remember_success(self) -> None:
+        with self._cache_lock:
+            self._last_error = None
+            self._last_success_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     # -- public API ---------------------------------------------------------------------------
 
@@ -390,7 +418,9 @@ class IndianApiService:
         normalize: Callable[[Any], dict[str, Any]],
     ) -> dict[str, Any]:
         if not self.configured:
-            raise IndianApiError("not_configured", "Market reference data is not configured. Set INDIAN_API_KEY on the server.", 503)
+            error = IndianApiError("not_configured", "Market reference data is not configured. Set INDIAN_API_KEY on the server.", 503)
+            self._remember_error(error)
+            raise error
 
         cached = self._lookup(key)
         if cached and time.time() - cached[0] < ttl:
@@ -407,6 +437,7 @@ class IndianApiService:
             try:
                 result = normalize(self._request(path, params))
             except IndianApiError as error:
+                self._remember_error(error)
                 if error.code in _TRANSIENT_CODES and cached:
                     return self._present(
                         cached,
@@ -419,6 +450,7 @@ class IndianApiService:
                 raise
             entry = (time.time(), result)
             self._store(key, entry)
+            self._remember_success()
             return self._present(entry, stale=False, from_cache=False)
 
     def _request(self, path: str, params: dict[str, str]) -> Any:
@@ -471,8 +503,8 @@ class IndianApiService:
             self._set_cooldown(error, 900)
             return error
         if status_code == 429:
-            error = IndianApiError("rate_limited", "The market-data provider is rate limiting requests. Please wait a moment.", 429)
-            self._set_cooldown(error, 60)
+            error = IndianApiError("rate_limited", "IndianAPI is rate limiting requests. Wait before retrying or check the API plan and quota.", 429)
+            self._set_cooldown(error, 300)
             return error
         if status_code in (400, 404, 422):
             return IndianApiError("not_found", "The market-data provider has no data for this request.", 404)

@@ -18,7 +18,7 @@ from websockets.asyncio.client import connect
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Instrument, Order, Position
-from app.services.provider import ProviderClient, provider_client
+from app.services.provider import ProviderClient, ProviderError, provider_client
 from app.services.indian_api import IndianApiError, indian_api
 
 logger = logging.getLogger(__name__)
@@ -119,8 +119,10 @@ class MarketDataService:
         self._subscriptions: dict[WebSocket, set[str]] = {}
         self._indian_api_subscriptions: dict[WebSocket, set[str]] = {}
         self._indian_api_wakeup = asyncio.Event()
+        self._indian_api_rotation_offset = 0
         self._sub_lock = asyncio.Lock()
         self._provider_socket: Any = None
+        self.provider_error: str | None = None
         self._task: asyncio.Task[None] | None = None
         self._demo_task: asyncio.Task[None] | None = None
         self._indian_api_task: asyncio.Task[None] | None = None
@@ -138,8 +140,7 @@ class MarketDataService:
     @property
     def connected(self) -> bool:
         return (self._provider_socket is not None
-                or (self._demo_task is not None and not self._demo_task.done())
-                or (self._indian_api_task is not None and not self._indian_api_task.done()))
+                or (self._demo_task is not None and not self._demo_task.done()))
 
     @property
     def mode(self) -> str:
@@ -369,6 +370,7 @@ class MarketDataService:
                 url = f"{settings.market_data_ws_base_url}?{urlencode({'token': key})}"
                 async with connect(url, ping_interval=20, ping_timeout=30, close_timeout=5, max_size=2_000_000) as ws:
                     delay = 1
+                    self.provider_error = None
                     async with self._sub_lock:
                         self._provider_socket = ws
                         instruments = [self._instrument_by_key[key] for key in self._provider_active if key in self._instrument_by_key]
@@ -383,11 +385,23 @@ class MarketDataService:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                log.warning("Market feed disconnected (%s); reconnecting in %ss", type(exc).__name__, delay)
+                if isinstance(exc, ProviderError):
+                    detail = str(exc).lower()
+                    if exc.status_code in (401, 403) or "auth" in detail or "account" in detail:
+                        self.provider_error = "021 feed authentication failed. Check active account credentials and provider access."
+                        delay = 300  # Avoid hammering the login endpoint while credentials/account access are invalid.
+                    elif exc.status_code == 429:
+                        self.provider_error = "021 feed rate limit reached. Retry after the provider's cooldown."
+                    else:
+                        self.provider_error = "021 market feed is unavailable. Check provider connectivity and configuration."
+                else:
+                    self.provider_error = "021 market feed connection failed temporarily."
+                log.warning("Market feed disconnected (%s: %s); reconnecting in %ss", type(exc).__name__, self.provider_error, delay)
             finally:
                 self._provider_socket = None
             await asyncio.sleep(delay)
-            delay = min(delay * 2, 30)
+            if delay < 300:
+                delay = min(delay * 2, 30)
 
     async def _run_demo(self) -> None:
         anchors = {
@@ -456,11 +470,18 @@ class MarketDataService:
         """Poll only symbols explicitly subscribed from the user's watchlist."""
         interval = max(30, settings.indian_api_quote_poll_seconds)
         limit = max(1, settings.indian_api_quote_max_symbols)
-        semaphore = asyncio.Semaphore(4)
+        semaphore = asyncio.Semaphore(2)
         while not self._stopping:
             started = asyncio.get_running_loop().time()
             self._indian_api_wakeup.clear()
-            symbols = sorted(set().union(*self._indian_api_subscriptions.values()))[:limit] if self._indian_api_subscriptions else []
+            all_symbols = sorted(set().union(*self._indian_api_subscriptions.values())) if self._indian_api_subscriptions else []
+            if all_symbols:
+                offset = self._indian_api_rotation_offset % len(all_symbols)
+                rotated = all_symbols[offset:] + all_symbols[:offset]
+                symbols = rotated[:limit]
+                self._indian_api_rotation_offset = (offset + len(symbols)) % len(all_symbols)
+            else:
+                symbols = []
             if not symbols:
                 try:
                     await asyncio.wait_for(self._indian_api_wakeup.wait(), timeout=interval)

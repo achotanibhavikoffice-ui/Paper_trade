@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownRight, ArrowUpRight, Flame, Layers, Search, Star, TrendingDown, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { accountApi, insightsApi, type Instrument, type MarketMover } from '../api';
+import { accountApi, insightsApi, marketApi, type Instrument, type MarketMover, type MarketStatus } from '../api';
 import { useMarketFeed } from '../hooks/useMarketFeed';
 import { useWatchlist } from '../hooks/useWatchlist';
 
@@ -35,21 +35,39 @@ export function ExplorePage() {
   const [losers, setLosers] = useState<MarketMover[]>([]);
   const [mostActive, setMostActive] = useState<MarketMover[]>([]);
   const [moversLoading, setMoversLoading] = useState(true);
+  const [moversError, setMoversError] = useState('');
+  const [moversRetry, setMoversRetry] = useState(0);
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
+  const [quoteWaitElapsed, setQuoteWaitElapsed] = useState(false);
+  const [quoteRetry, setQuoteRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setMoversLoading(true);
+    setMoversError('');
     Promise.allSettled([insightsApi.trending(), insightsApi.mostActive('NSE')]).then(([trendRes, activeRes]) => {
       if (!active) return;
+      const failures: string[] = [];
       if (trendRes.status === 'fulfilled') {
         setGainers(trendRes.value.gainers || []);
         setLosers(trendRes.value.losers || []);
-      }
+      } else failures.push(trendRes.reason instanceof Error ? trendRes.reason.message : 'Gainers and losers are unavailable.');
       if (activeRes.status === 'fulfilled') {
         setMostActive(activeRes.value.items || []);
-      }
+      } else failures.push(activeRes.reason instanceof Error ? activeRes.reason.message : 'Active-share data is unavailable.');
+      // Both endpoints commonly return the same upstream quota error.
+      setMoversError([...new Set(failures)].join(' '));
       setMoversLoading(false);
     });
     return () => { active = false; };
+  }, [moversRetry]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => marketApi.status().then((status) => { if (active) setMarketStatus(status); }).catch(() => {});
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 15000);
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
   useEffect(() => {
@@ -103,11 +121,31 @@ export function ExplorePage() {
   }, [filtered]);
 
   const quoteSymbols = useMemo(() => visibleQuoteSymbols.slice(0, 25), [visibleQuoteSymbols]);
-  const { quotes } = useMarketFeed(quoteSymbols, { pollIndianApi: true });
+  const { quotes } = useMarketFeed(quoteSymbols, { pollIndianApi: true, refreshKey: quoteRetry });
+  useEffect(() => {
+    setQuoteWaitElapsed(false);
+    if (!quoteSymbols.length) return;
+    const timer = window.setTimeout(() => setQuoteWaitElapsed(true), 30000);
+    return () => window.clearTimeout(timer);
+  }, [quoteSymbols.join(',')]);
   const hasPracticeQuotes = Object.values(quotes).some((quote) => quote.data_source === 'demo');
   const hasIndianApiQuotes = Object.values(quotes).some((quote) => quote.data_source === 'indianapi');
+  const apiError = marketStatus?.indian_api?.last_error;
+  const snapshotError = apiError?.code === 'not_configured' && marketStatus?.connected ? null : apiError;
+  const retryWait = marketStatus?.indian_api?.retry_after_seconds ?? 0;
+  const quotesUnavailable = Boolean(snapshotError || (marketStatus && !marketStatus.connected && !hasPracticeQuotes));
+  const unavailableQuoteLabel = snapshotError
+    ? 'Provider unavailable'
+    : marketStatus?.provider_error
+      ? 'Feed disconnected'
+      : marketStatus?.enabled
+        ? 'No current quote'
+        : 'Market data not configured';
 
   const activeMovers = moverTab === 'active' ? mostActive : moverTab === 'gainers' ? gainers : losers;
+  const moverUnavailableMessage = snapshotError
+    ? 'Market movers are unavailable while the quote provider recovers. See feed status below.'
+    : moversError || 'No market movers were returned by the provider.';
 
   return (
     <div className="trade-page">
@@ -143,7 +181,12 @@ export function ExplorePage() {
         {moversLoading ? (
           <div className="trade-table-loading"><span /><span /><span /></div>
         ) : activeMovers.length === 0 ? (
-          <div className="trade-inline-empty">Market mover data is temporarily refreshing.</div>
+          <div className="trade-inline-empty trade-provider-empty">
+            <span>{moverUnavailableMessage}</span>
+            <button type="button" className="trade-provider-retry" onClick={() => setMoversRetry((value) => value + 1)} disabled={retryWait > 0}>
+              {retryWait > 0 ? `Retry in ${Math.ceil(retryWait / 60)} min` : 'Retry market movers'}
+            </button>
+          </div>
         ) : (
           <div className="trade-movers-grid">
             {activeMovers.slice(0, 10).map((mover, index) => {
@@ -178,6 +221,17 @@ export function ExplorePage() {
           </div>
         )}
       </section>
+
+      {snapshotError && <div className="trade-notice error" role="status">
+        <span>
+          {snapshotError.message}{retryWait > 0 ? ` Retry in about ${Math.ceil(retryWait / 60)} minute(s).` : ''}
+          {marketStatus?.provider_error ? ` ${marketStatus.provider_error}` : ''}
+          {!marketStatus?.connected ? ' No verified current quote is available until a provider reconnects.' : ''}
+        </span>
+        <button type="button" className="trade-provider-retry" onClick={() => setQuoteRetry((value) => value + 1)} disabled={retryWait > 0}>
+          {retryWait > 0 ? `Retry in ${Math.ceil(retryWait / 60)} min` : 'Retry quotes'}
+        </button>
+      </div>}
 
       <section className="trade-panel trade-explore-controls">
         <label className="trade-search-box">
@@ -245,13 +299,13 @@ export function ExplorePage() {
                         </div>
                       </td>
                       <td>{item.sector || '—'}</td>
-                      <td>{price === null ? <span className="trade-data-muted">Requesting snapshot</span> : <span title={`${quote?.data_source === 'indianapi' ? 'IndianAPI snapshot' : 'Market quote'} · ${new Date(quote!.timestamp).toLocaleString('en-IN')}`}>{inr(price)}</span>}</td>
+                      <td>{price === null ? <span className="trade-data-muted">{quotesUnavailable ? unavailableQuoteLabel : quoteWaitElapsed ? 'No current quote' : 'Requesting snapshot'}</span> : <span title={`${quote?.data_source === 'indianapi' ? 'IndianAPI snapshot' : 'Market quote'} · ${new Date(quote!.timestamp).toLocaleString('en-IN')}`}>{inr(price)}</span>}</td>
                       <td className={change === null ? '' : change >= 0 ? 'trade-positive' : 'trade-negative'}>
                         {change === null ? '—' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`}
                       </td>
                       <td>
                         <span className="trade-depth-count">
-                          {quote?.data_source === 'indianapi' ? 'Price only · no depth' : quote ? `${quote.bids.filter((level) => level.quantity > 0).length} bids · ${quote.asks.filter((level) => level.quantity > 0).length} asks` : 'Snapshot pending'}
+                          {quote?.data_source === 'indianapi' ? 'Price only · no depth' : quote ? `${quote.bids.filter((level) => level.quantity > 0).length} bids · ${quote.asks.filter((level) => level.quantity > 0).length} asks` : quotesUnavailable || quoteWaitElapsed ? 'No quote/depth' : 'Snapshot pending'}
                         </span>
                       </td>
                       <td>

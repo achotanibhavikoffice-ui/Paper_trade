@@ -83,6 +83,24 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
       ? location.pathname === '/dashboard'
       : location.pathname.startsWith(item.path)
   );
+  const snapshotMode = ['indianapi', 'snapshot+demo'].includes(marketStatus?.mode ?? '');
+  const snapshotError = marketStatus?.indian_api?.last_error;
+  const providerError = marketStatus?.provider_error;
+  const marketBadgeTitle = snapshotError
+    ? `${snapshotError.message}${marketStatus?.indian_api?.retry_after_seconds ? ` Retry in about ${Math.ceil(marketStatus.indian_api.retry_after_seconds / 60)} minute(s).` : ''}`
+    : providerError ? `021 market feed: ${providerError}`
+    : snapshotMode
+      ? 'IndianAPI provides periodic price snapshots without market depth.'
+      : marketStatus?.mode === 'demo'
+        ? 'Generated practice prices are used when 021 has no current quote. Orders are simulated in your local paper account.'
+        : marketStatus?.connected
+          ? '021 market feed connected; orders execute in the local paper simulator.'
+          : 'Market feed is disconnected. Quotes may be unavailable; orders require a fresh quote.';
+  const marketBadgeLabel = snapshotError ? 'SNAPSHOT ISSUE'
+    : providerError && !marketStatus?.connected ? 'FEED ISSUE'
+    : snapshotMode ? 'API SNAPSHOT'
+      : marketStatus?.mode === 'demo' ? 'DATA'
+        : marketStatus?.connected ? 'MARKET FEED LIVE' : 'PAPER PRACTICE';
   const currentTitle = location.pathname === '/settings' ? 'Settings' : currentNavItem ? currentNavItem.label : location.pathname.startsWith('/stocks/') ? 'Stock details' : 'Workspace';
 
   return (
@@ -203,8 +221,8 @@ export function AppLayout({ user, onAuth, children }: AppLayoutProps) {
               </kbd>
             </button>
 
-            <span className={`market-status workspace-market-status ${marketStatus?.connected && !['demo', 'indianapi', 'snapshot+demo'].includes(marketStatus.mode) ? 'connected' : ''}`} title={['indianapi', 'snapshot+demo'].includes(marketStatus?.mode ?? '') ? 'IndianAPI price snapshots refresh about once per minute; they do not include market depth.' : marketStatus?.mode === 'demo' ? 'Generated practice prices are used when 021 has no current quote. Orders are simulated in your local paper account.' : marketStatus?.connected ? '021 market feed connected; orders execute in the local paper simulator.' : 'Market feed is disconnected. Quotes may be unavailable; orders require a fresh quote.'}>
-              <i /> {['indianapi', 'snapshot+demo'].includes(marketStatus?.mode ?? '') ? 'API SNAPSHOT' : marketStatus?.mode === 'demo' ? 'DATA' : marketStatus?.connected ? 'MARKET FEED LIVE' : 'PAPER PRACTICE'}
+            <span className={`market-status workspace-market-status ${snapshotError || (providerError && !marketStatus?.connected) ? 'market-error' : marketStatus?.connected && !['demo', 'indianapi', 'snapshot+demo'].includes(marketStatus.mode) ? 'connected' : ''}`} title={marketBadgeTitle}>
+              <i /> {marketBadgeLabel}
             </span>
 
             {/* Buying Power Pill */}
