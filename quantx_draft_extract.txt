@@ -1,0 +1,1147 @@
+--- PAGE 1 ---
+Quantx: An NSE Equity Paper-Trading Workspace
+with Boundary-Enforced Market Data and
+Depth-Based Local Order Matching
+[Name]
+[Department], [Institution]
+[City, Country]
+[Email]
+Abstract—In this work, we developed Quantx, an exchange-
+style paper-trading workspace for National Stock Exchange of
+India (NSE) equities in which simulated orders are matched
+locally against streamed market depth. The system is organized
+as four tiers: a React client, a FastAPI service tier, a market-
+data decoding and matching tier, and a PostgreSQL ledger with a
+Redis quote cache. Its key design principle is a hard boundary be-
+tween a market-data plane, which may only read authentication,
+instrument and quote data from a provider, and an accounting
+plane, which alone creates orders, fills, charges, cash movements
+and positions; paper orders are never sent to a provider order
+interface. Inside that boundary, the system normalizes prices to
+tick size, validates circuit, lot and freeze constraints, consumes
+five-level bid and ask depth with partial fills, applies product-
+aware brokerage and statutory charges, discards duplicate and
+older-timestamp packets, and refuses market orders when depth
+is stale. We evaluated the integrated workflow against a last-price,
+zero-charge baseline on [MEASURE: N scripted orders across
+three scenario profiles], measuring ledger-reconciliation error,
+charge error, fill-price deviation from an independently computed
+reference, feed-disorder recovery, and per-operation latency at
+the median, 95th and 99th percentiles. These results support the
+feasibility of boundary-enforced local paper execution for NSE
+equity practice; they do not establish fidelity to live exchange
+behavior, learning outcomes, or production readiness.
+Index Terms —Paper Trading, Order Matching, Limit Order
+Book, Market Depth, Indian Equities, Transaction Charges,
+Idempotent Submission, Out-of-Order Market Data, Financial
+Education Software, System Evaluation.
+I. I NTRODUCTION
+Software that lets a learner practice securities trading must
+handle two kinds of information whose truth is owned by
+different parties. The first is market data: instrument reference
+records, quotes and order-book depth that originate at an
+exchange or its data vendor, arrive as a high-rate, time-ordered
+stream, and cannot be corrected by the application [1]–[3].
+The second is account state: orders, fills, cash, positions
+and charges that exist only because the application records
+them, and whose consistency the application must guarantee
+through transactional storage [4], [5]. A practice environment
+is credible only if the first kind of information is treated as
+read-only input and the second as an authoritative, auditable
+record.
+Unconstrained simulators typically blur this separation and
+fail in three recurring ways.
+• Fill-Model Fragility: Filling an order at the last traded
+price ignores finite displayed quantity and the bid–ask
+spread, although execution prices depend on how far an
+order walks the book and on order size [6]–[9].
+• Charge and Product-Rule Blindness: Trading costs
+and turnover are first-order determinants of individual
+investors’ net performance [10]–[12], and the applicable
+charges differ by product (delivery versus intraday) and
+by order side, so a simulator that omits per-fill charges
+or product rules reports misleading profit and loss.
+• Feed-Disorder Fragility: Real streams deliver dupli-
+cated, late and out-of-order messages, and processing-
+time order is not event-time order [13]–[15]; a simulator
+that applies packets in arrival order can let an older quote
+overwrite a newer one.
+This study evaluates an integrated, boundary-enforced work-
+flow rather than any single component in isolation. The
+workflow combines server-side-only provider credentials; a
+provider boundary that excludes order submission; binary
+frame decoding with unit normalization; timestamp-based dis-
+carding of older packets and duplicates; a stale-depth guard
+for market orders; tick normalization and circuit, lot, freeze,
+product and funds checks at admission; cash reservation; idem-
+potent order submission; five-level depth matching with partial
+fills and IOC cancellation; product-aware per-fill charges;
+transactional persistence of orders, fills, ledger entries and
+positions; an order-event audit trail; a stress mode that alters
+only simulated execution; and read-only What-If scenarios.
+A. Problem Statement
+Existing treatments address these concerns separately:
+market-microstructure models describe how books evolve [3],
+[9], cost studies quantify what retail traders pay [12], and
+stream-processing and database work address disorder, idem-
+potency and atomicity [4], [13], [16]. Used in isolation, each
+leaves a gap at the application level. A fill model without a
+charge engine yields wrong cash balances; a charge engine
+without a stale-data guard can bill fills that should not have
+occurred; and a ledger without an enforced provider boundary
+risks sending practice orders to a live order interface.
+The research and engineering problem is to design a single
+execution workflow for NSE equity practice in which (i) mar-
+
+--- PAGE 2 ---
+ket data is strictly read-only input, (ii) every order, fill, charge,
+cash movement and position is created and persisted inside the
+application, and (iii) the workflow remains consistent under
+duplicate, late, bursty and stale market updates, while stating
+exactly which properties have and have not been measured.
+B. Project Objectives
+• Implement a local paper-order engine that supports
+MARKET, LIMIT, SL and SL-M orders with partial fills,
+cancellation and DAY/IOC validity.
+• Integrate an authenticated market-data feed behind a
+boundary that permits authentication, instrument and
+quote access only.
+• Build a transactional accounting layer that records fills,
+per-fill charges, cash-ledger entries, positions and order
+events.
+• Develop feed-disorder and stale-depth handling that is
+explicit, configurable and observable.
+• Evaluate the integrated workflow against a defined base-
+line in controlled scenarios, reporting spread as well as
+means.
+C. Contributions
+1) A four-tier architecture and a market-data/accounting
+boundary that never routes paper orders to a provider
+order interface (Sections III and IV).
+2) A specification of depth-based local matching, cash
+reservation, product-aware per-fill charges and position
+accounting, with every quantity defined (Section V).
+3) A four-phase execution workflow with validated request
+fields and a documented configuration surface (Section
+VI).
+4) A reproducible evaluation protocol, with a defined base-
+line, scenario profiles and pre-declared success criteria,
+together with a candid account of what the protocol does
+not establish (Sections VII–IX).
+The remainder of the paper is organized as follows. Section
+II reviews related work and states the research gap. Section
+III presents the architecture. Sections IV and V describe the
+market-data plane and the local matching and accounting
+mechanisms. Section VI documents configuration and vali-
+dated fields. Section VII gives the experimental setup and eval-
+uation. Section VIII discusses limits and ethics, and Section
+IX concludes with reproducible future evaluation protocols.
+II. R ELATED WORK
+A. Market Microstructure and Order-Book Execution
+Empirical and theoretical microstructure work explains why
+execution price depends on displayed liquidity. Surveys of
+limit order books describe the empirical properties of depth,
+spread and queue dynamics [3], and stochastic models treat
+the book as a queueing system whose state determines short-
+horizon execution outcomes [9]. Execution-cost models relate
+trade size and speed to price impact [6], equilibrium models
+tie price impact to order flow [7], empirical work studies
+how markets absorb such flow over time [17]; practitioner
+treatments cover the rules and mechanics of exchanges [1].
+These works characterize markets and optimal execution; none
+specifies the contract of an application that must reproduce
+book-walking fills inside a learner’s account while keeping
+provider data read-only.
+B. Trading Costs and Retail Investor Outcomes
+Studies of individual investors report that turnover and
+trading costs materially reduce net performance [10], [11],
+and that aggregate losses from trading can be large in broad
+investor populations [12]. An analysis by the Indian securities
+regulator examined profitability of individual traders in the
+equity futures-and-options segment [18]; that segment differs
+from the cash-equity scope of this paper, and the entry is
+flagged for verification in the reference list. These studies
+measure outcomes after the fact; they do not supply a practice
+environment that applies product-specific charges to every
+simulated fill.
+C. Experiential Learning and Simulation Fidelity
+Experiential learning theory motivates practice with con-
+crete feedback before exposure to consequence [19]. Con-
+versely, simulated performance can mislead: backtest-based
+results are vulnerable to overfitting, and an in-sample profit fig-
+ure is not evidence of out-of-sample skill [20]. Reproducibility
+guidance asks that computational claims ship with the artifacts
+needed to re-run them [21]. We did not perform a systematic
+literature search for peer-reviewed evaluations of paper-trading
+simulators for Indian equities [VERIFY: conduct and docu-
+ment a systematic search before submission]; accordingly, this
+paper makes no claim about learning outcomes.
+D. Disorder, Idempotency and Transactions in Data-Intensive
+Systems
+Stream-processing research distinguishes event time from
+processing time and shows that out-of-order, unbounded input
+must be handled explicitly [13]; logical ordering of events
+is a classical distributed-systems concern [14]. Idempotent
+processing makes repeated delivery safe [16], and transactional
+storage gives atomic, durable state changes [4]; practitioner
+syntheses connect these ideas in data-intensive applications
+[5]. These principles are general; they are not instantiated for
+a trading simulator whose ledger must remain consistent when
+quotes are duplicated, late or stale.
+Research gap. No work cited here combines, in one eval-
+uated workflow, (i) a provider boundary that forbids order
+submission, (ii) depth-walking partial fills with product-aware
+per-fill charges, and (iii) timestamp-based disorder and stale-
+ness handling feeding a transactional ledger. The gap is stated
+as three falsifiable hypotheses, tested in Section VII against
+a defined baseline B0 (last-price fills, zero charges, arrival-
+order packet processing, no idempotency enforcement): H1,
+the integrated workflow yields a smaller ledger-reconciliation
+error than B0; H2, it yields zero market-order executions on
+stale depth and zero overwrites by older-exchange-timestamp
+provider quotes, where B0 yields at least one; and H3, repeated
+
+--- PAGE 3 ---
+submission of one idempotency key by one account produces
+no additional order, fill or ledger entry. Each hypothesis can
+fail on the scenario set of Section VII.
+III. P ROPOSED SYSTEM AND ARCHITECTURE
+Quantx is organized as four tiers; external providers sit
+outside the tiers and are reached only through the market-data
+tier or the application tier.
+• Presentation tier (React 18, TypeScript, Vite, Tailwind
+CSS): renders the workspace, the trade ticket and source
+badges, subscribes to the application’s authenticated Web-
+Socket, and reconnects with backoff.
+• Application tier (FastAPI, Pydantic, SQLAlchemy):
+exposes a REST interface [22] and a WebSocket [23],
+validates requests, hashes passwords with Argon2 [24],
+and issues signed session tokens [25] in an HTTP-only
+cookie.
+• Market-data and matching tier (in-process services):
+authenticates to the provider server side, decodes binary
+frames, applies ordering and staleness guards, publishes
+normalized quotes, runs the local paper matcher, and runs
+the intraday square-off worker.
+• Persistence tier (PostgreSQL, Redis): PostgreSQL is
+authoritative for users, accounts, orders, fills, charges,
+positions and ledgers; Redis holds the latest normalized
+quote per symbol and an append-only quote stream.
+Fig. 1 shows the tiers, the provider boundary and the permitted
+data directions. The layering follows established enterprise-
+application practice [26]. Password recovery follows published
+guidance [27]: single-use tokens are stored only as SHA-256
+hashes, expire after 30 min, and are throttled to one request
+per minute per account.
+A. Separation of Responsibilities
+The design enforces one boundary: the market-data plane
+versus the accounting plane. The market-data plane may
+authenticate to a provider, synchronize instruments, and read
+quotes and depth; it may never send an order, hold account
+state, or write to the ledger. The accounting plane alone creates
+and changes orders, fills, charges, cash movements, positions
+and audit events, and it may never treat a snapshot price as
+executable depth, display a missing quote as zero, or present
+generated practice values as live data. Source labels carried
+with each quote (generated practice data, provider snapshot,
+or streaming feed) keep this distinction visible to the user.
+Provider credentials are used only by the backend and are
+never exposed to the browser.
+IV. B OUNDARY -E NFORCED MARKET -DATA PLANE
+The market-data plane converts provider frames, which
+are binary, expressed in paise and subject to duplication
+and reordering, into normalized, ordered and labelled quotes
+that the accounting plane can trust as read-only input. Its
+responsibilities are narrow by design: it authenticates to the
+provider, decodes frames, discards what it must discard, caches
+what it keeps, and fans quotes out to the matcher and to
+browsers. Fig. 2 summarizes the flow.
+A. Provider Boundary and Source Labelling
+The provider’s authentication, instrument and ephemeral-
+key endpoints are called only by the backend with server-held
+credentials; the ephemeral key opens the provider’s market-
+data WebSocket. The provider’s order interface and order-
+event socket are intentionally not used. Each quote carries a
+source label: streaming feed, provider snapshot (periodically
+refreshed and not an order book), or generated practice data
+marked demo. A fresh streamed quote takes precedence over
+a generated one for the same symbol, and the generated feed
+is rejected in production configuration. The generated feed
+produces five bid and five ask levels per symbol every 1.4 s,
+with a spread of max{0.025% of last price , 0.01 INR} per
+level, quantities drawn uniformly from 100 to 2,200 shares,
+and a random-walk price step of at most 0.09%. The paper
+engine does not retain provider snapshots, so a snapshot can
+never serve as execution depth.
+B. Frame Decoding and Unit Normalization
+A big-endian decoder handles the provider’s last-traded-
+price packet (TC 1) and full packet (TC 3) for cash, derivative
+and index segments; the heartbeat packet (TC 10) is ignored.
+Quantx subscribes in full mode; the decoder reads ten depth
+levels (five bids, then five asks) with quantity, price and order
+count, and index packets carry no depth. TC 1 packets and
+snapshots therefore yield empty depth lists. Provider prices and
+the instrument CSV are in paise, whereas Quantx order prices
+are entered and stored in rupees, so every price is converted
+at the boundary:
+p = ˜p100 , (1)
+where ˜p ∈ N is a provider price (paise) and p ∈ R≥0 is the
+corresponding price (INR). Quantity fields are unitless share
+counts.
+C. Disorder and Staleness Guards
+Each quote carries a timestamp: for a full packet, the
+exchange time (converted from exchange seconds by a fixed
+offset of 315,513,000 s) when present, and otherwise the
+receipt time. A TC 1 packet has no exchange time and is
+stamped on receipt. For symbol s, let τk be the exchange
+timestamp of arriving quote k and τ ∗s that of the stored quote.
+A quote is discarded only when both timestamps exist, the
+source is the provider stream, and the new one is strictly older:
+ak =
+(
+0, provider stream, τk, τ∗s defined, τk < τ∗s ,
+1, otherwise, (2)
+where ak ∈ {0, 1} is the acceptance flag (unitless) and τk, τ∗s
+are exchange timestamps (s, UTC after conversion). Equal
+timestamps with changed content are accepted. Independently
+of timestamps, a quote whose signature (source, last price,
+volume and the five-level bid and ask prices and quantities)
+equals the stored signature for that symbol is dropped, except
+for snapshot-sourced quotes. A market order is blocked when
+the depth is too old:
+As(t) = t − τs ≤ θ, (3)
+
+--- PAGE 4 ---
+IndianAPI, Marketaux,
+OpenAI (optional)
+021 developer API
+(read-only use)
+Presentation tier Application tier Market-data andmatching tier Persistence tier
+React, TypeScript, Vite
+Trade ticket,
+source badges
+WebSocket
+client, backoff
+FastAPI, Pydantic
+Cookie session, Argon2
+Quote WebSocket
+Binary frame decoder
+Order and stale guards
+Local paper matcher
+PostgreSQL:
+authoritative ledger
+Redis: quote
+cache, stream
+Orders, fills, positions
+Provider boundary: no order endpoints
+Fig. 1. Overall Quantx four-tier architecture illustrating the provider boundary above the application, the in-process market-data and matching tier, and the
+authoritative persistence tier; providers supply authentication, instruments, quotes, snapshots, news and optional help text, and never receive paper orders.
+Provider binary frame
+Decode TC 1 / TC 3
+Paise to rupees
+Ordering, duplicate check
+Memory and Redis cache
+Matcher Browser WS
+Drop older, duplicate
+Fig. 2. Market-data pipeline from provider frame to matcher and browser,
+showing where unit conversion, ordering and duplicate checks, and caching
+occur; the stale-depth check is evaluated when a market order is processed
+rather than in this pipeline.
+where As(t) is the quote age at processing time t (s), τs is
+the stored quote’s timestamp (exchange time when present,
+else receipt time), t is the host’s UTC wall-clock time, and θ
+is the setting market_quote_max_age_seconds, whose
+default is 120 s. A missing or unparseable timestamp is treated
+as stale. Because t comes from the host clock and τs from
+the exchange, clock skew can shift the effective threshold.
+A MARKET order is rejected (HTTP 409) when no quote
+exists or Equation (3) fails, except for system square-off
+orders, which are accepted and wait. Limit and stop orders
+are accepted regardless of staleness; at submission they are
+matched only if the stored quote is fresh, and otherwise at the
+next quote event.
+D. Subscription Lifecycle
+One upstream market connection is shared by the backend,
+and the provider’s limit of 100 instruments is enforced. After
+a reconnect, the service resubscribes using a fresh ephemeral
+key. A background worker retains subscriptions for symbols
+with an open paper order or position even after a browser
+closes. A single worker consumes the quote queue and runs
+the paper engine’s matching in a thread for each quote.
+PostgreSQL advisory locks elect one process to own the
+provider session and the intraday square-off worker, while any
+number of processes may serve HTTP requests. The browser
+socket accepts subscribe and unsubscribe tasks and
+emits ready, subscribed, quote and error messages.
+V. L OCAL PAPER MATCHING , C HARGES AND LEDGER
+The accounting plane turns an accepted order into fills,
+charges, cash movements and positions inside one authoritative
+store. This section specifies the mechanisms in the order they
+execute.
+A. Admission and Cash Reservation
+Admission proceeds in this order: the instrument must be
+tradable (and have a provider token unless the generated feed
+is enabled); limit and trigger prices are rounded to the nearest
+tick by round(p/tick) × tick rather than rejected; the quantity
+must not exceed the freeze quantity and must be a multiple
+of the board lot; limit and trigger prices must lie within
+the instrument’s circuit band (market orders are not circuit-
+checked); market-data availability and freshness are checked
+(Section IV-C); stop orders must satisfy the trigger-reference
+rules (a buy trigger above, and a sell trigger below, the last
+price; a stop-limit’s limit price at or beyond its trigger); and
+funds or holdings are checked. Rejection returns an HTTP
+error and no order row is stored. For a buy order the engine
+reserves buying power:
+Ro = qo prefo (1 + ρ) + βo,
+ρ =
+
+max{tCNC + uCNC, tMIS,S + uMIS}
++ ϵX + ϵS + ϕ
+
+(1 + g),
+(4)
+where Ro is the reservation for order o (INR); qo ∈ N is its
+quantity (shares); prefo is the reference price (INR): the limit
+
+--- PAGE 5 ---
+price if present, otherwise the highest visible ask, otherwise the
+last price (no reservation is made when no quote exists); ρ is
+a conservative charge ratio (unitless) built from the paper_*
+settings, in which tCNC and uCNC are the delivery STT and
+stamp ratios, tMIS,S is the intraday sell STT ratio and uMIS the
+intraday buy stamp ratio; ϵX, ϵS, ϕ and g are as in Equation (8);
+and βo is brokerage per order (INR), taken from the account’s
+commission if set and otherwise the settings default. The factor
+(1 + g) is applied to every ratio term, which slightly over-
+reserves. A buy is admitted only if the cash balance minus
+reserved cash is at least Ro. A delivery (CNC) sell requires
+held shares minus open sell quantity to cover the order. An
+intraday (MIS) sell has no funds or holdings check in the
+supplied engine, so short positions are permitted.
+B. Depth-Walking Matching
+Let the opposite side of the book contribute levels i =
+1, . . . ,5 sorted best first, with price πi (INR) and displayed
+quantity Qi (shares): ascending asks for a buy, descending
+bids for a sell, after any stress transformation (Equation (12)).
+For a limit order (or a triggered stop-limit) with price plim,
+the eligible set is E = {i : πi ≤ plim} for a buy and
+E = {i : πi ≥ plim} for a sell; for a market order (or triggered
+SL-M), E contains all levels. The engine consumes eligible
+levels in order:
+xi = min
+n
+Qi, max
+
+0, q −
+X
+j∈E, j<i
+xj
+o
+, i ∈ E, (5)
+where xi is the quantity taken from level i (shares) and q is
+the order’s remaining quantity (shares). The filled quantity and
+its volume-weighted price are
+f =
+X
+i∈E
+xi, (6)
+¯p = 1f Xi∈E xi πi, f > 0, (7)
+where f is the quantity filled in this matching pass (shares)
+and ¯p is the average fill price (INR). Each level with xi > 0
+is recorded as a separate trade with its own sequence number,
+price πi and charges; the order’s stored average price is a
+running weighted average rounded to two decimals. A buy
+trade is skipped, and the loop stops, if the post-trade cash
+would fall below the remaining reservation. Fallback: if no
+displayed level is eligible (an empty side, as with TC 1 packets,
+or no level within the limit) and a last price exists, the engine
+creates one synthetic level at the last price with quantity equal
+to the remaining quantity, provided a limit order is marketable
+at that price; thus depth-less quotes yield a full last-price
+fill. Depth bookkeeping: depth is copied from the quote at
+the start of each matching pass and decremented across that
+account’s orders within the pass; other accounts’ passes and
+later quote events start again from the displayed quantities,
+so consumption is not shared. Remainder: an unfilled DAY
+remainder stays open (or partially filled) until a later quote
+event, an IOC remainder is cancelled, and no path in the
+supplied code sets the expired status. All prices, values and
+charges are rounded half-up to two decimals.
+C. Per-Fill Charges
+Charges are computed for each trade (one level) with ratios
+fixed in the fee routine:
+C = b β+
+ 
+ϵX + ϵS + ϕ + tk,d + uk,d
+
+V
++ g
+
+b β+ (ϵX + ϵS + ϕ)V
+
+, V = xi πi, (8)
+where C is the total charge for the trade (INR); V is
+the trade turnover (INR); b = 1 for the first trade of an
+order and 0 otherwise; β is brokerage (INR), equal to the
+account’s commission_per_order if set and otherwise 0
+for CNC and min{20, 0.0003 V } for MIS; ϵX = 0 .0000325
+and ϵS = 0 .000001 are the exchange-transaction and SEBI
+ratios; ϕ is the account’s regulatory-fee percentage divided
+by 100, added to the SEBI component; tk,d and uk,d are the
+STT and stamp-duty ratios for product k ∈ {CNC, MIS} and
+side d (TABLE I); and g = 0.18 is the GST ratio, applied to
+brokerage, exchange and SEBI components. Each component
+is rounded half-up to two decimals before summation, so the
+recorded total can differ from the unrounded expression by a
+few paise. The charge ratios in the fee routine are constants
+in code; the PAPER_* environment settings feed only the
+reservation estimate of Equation (4). A separate legacy fee
+module uses different values and is discussed in Section VIII.
+Cash moves by
+∆M = − d± xi πi − C, (9)
+where ∆M is the change in virtual cash for the trade (INR)
+and d± = +1 for a buy and −1 for a sell. It is recorded as
+two ledger entries, a trade debit or credit of the gross value
+and a separate charge entry, each keyed for idempotency by the
+trade identifier. The trade, its charge row, the ledger entries, the
+position and the order are written in one database transaction
+[4].
+D. Positions and Realized Profit and Loss
+Charges are capitalized into an effective price per trade,
+peff = πi + d± C/xi (INR per share). Positions are signed: for
+quantity Q (shares; negative when short) and average price A
+(INR per share), a trade in the direction of the position, or on
+a flat position, updates
+A′ = |Q| A + xi peff
+|Q′| , Q ′ = Q + d± xi, (10)
+where A′ and Q′ are the new average price (INR per share)
+and quantity (shares). A trade against the position closes c =
+min(|Q|, xi) shares and realizes
+Preal = sgn(Q) (peff − A) c, (11)
+where Preal is the realized profit and loss added to the position
+(INR) and sgn(Q) = +1 for a long and −1 for a short position.
+The average price is reset to zero when the position closes
+exactly, and to peff when the trade flips its direction. Charges
+are therefore embedded in the average price on entry and in
+
+--- PAGE 6 ---
+the effective price on exit, and no separate charge term appears
+in Equation (11).
+E. Stress Mode and What-If Scenarios
+Account-level Market Stress Mode alters only that account’s
+simulated execution. Before matching, the effective levels are
+π′i = πi + s plast (asks),
+π′i = max{0.01, πi − s plast} (bids),
+Q′i = ⌊λ Qi⌋,
+(12)
+where π′i and Q′i are the effective level price (INR) and
+quantity (shares) used by Equation (5), plast is the last price
+(INR), s is the setting paper_stress_spread_percent
+used directly as a multiplier of the last price (unitless; the
+default is 0.005, which acts as a fraction, so each level moves
+by 0.5% of the last price despite the setting’s name), and λ
+is paper_stress_liquidity_factor (unitless, default
+0.5). A second, older stress mechanism in the quote store
+perturbs the price itself with a sine and random-drift term
+and is read by the what-if engine and the legacy matcher; it
+is not part of the account-level path above. What-If scenarios
+are read-only projections applied to each holding:
+V projj = qj maxn0, pj1 + δj100 o,
+Πj = V projj − qj pj, (13)
+where for holding j, qj is the quantity (shares), pj the current
+price (INR), δj the shock (%; the stock-specific override if
+given, else the global shift), V projj the projected value (INR)
+and Πj the projected profit and loss relative to current market
+value (INR). Cash is held constant, and running a scenario
+changes no cash, holdings or orders. The engine reads current
+prices from the quote store, whose synchronization with the
+live quote path is [CONFIRM: writer of the quote store]; a
+single-stock estimate with no quote falls back to an assumed
+entry price of INR 1,500.
+VI. R UNTIME CONFIGURATION AND STRUCTURED
+VALIDATION
+Every order passes through four phases, shown in Fig. 3. In
+Phase 1 the system authenticates the session, decodes provider
+frames and receives the order request. In Phase 2, the rule
+gate checks the request against the instrument and account
+constraints, the staleness guard and the idempotency key; a
+failing request is rejected with a reason and no financial state
+changes. In Phase 3 the matcher walks depth and computes
+charges. In Phase 4 the result is validated and committed in
+one transaction, an audit event is appended, and the updated
+state is pushed to the browser.
+TABLE I lists the configured values by module, and TA-
+BLE II lists the validated request fields. The full request
+schema is given in Appendix A.
+TABLE I
+MODULE CONFIGURATION
+Module Configured values
+Market feed Full mode; 5 depth levels; TC 1 and TC 3 de-
+coded; TC 10 ignored; at most 100 instruments
+Staleness guard θ = market_quote_max_age_seconds,
+default 120 s
+Charge constants † Exchange 0.0000325; SEBI 0.000001; GST
+0.18 on brokerage, exchange and SEBI; CNC:
+STT 0.001 both sides, stamp 0.00015 buy,
+brokerage 0; MIS: STT 0.00025 sell, stamp
+0.00003 buy, brokerage min{20, 0.0003V } on
+first trade; account commission and regulatory-
+fee percentage override or add
+Stress mode Spread multiplier 0.005 of last price; liquidity
+factor 0.5; per-account flag
+Square-off Weekdays at or after 15:20 IST, polled every
+10 s; one MIS exit per date and position (key
+auto-squareoff:date:id); one elected
+worker
+Capital selector INR 100,000 to 1,000,000 in steps of 100,000;
+2,000,000; 2,500,000 to 5,000,000 in steps of
+500,000
+Account fee
+inputs
+Commission per order 0 to 10,000 INR (two
+decimals); regulatory fee 0 to 5% (three deci-
+mals)
+Session, recovery HTTP-only, SameSite=Lax cookie; reset to-
+ken 30 min, single use; one reset email per
+minute
+†Simulation constants in code; verify against current official schedules. The
+PAPER_* settings affect only the reservation estimate.
+TABLE II
+VALIDATED ORDER FIELDS
+Field Purpose and constraint
+instrument_id Instrument identifier (UUID); must refer-
+ence a known instrument
+side BUY or SELL
+product CNC (delivery) or MIS (intraday); selects
+charge ratios
+order_type MARKET, LIMIT, SL or SL-M
+quantity Integer from 1 to 1,000,000 (shares); mul-
+tiple of board lot; at most the freeze
+quantity
+limit_price Rupee decimal (INR); rounded to tick;
+within circuit band
+validity DAY or IOC
+idempotency_key 8 to 64 characters; unique across orders;
+same-account repeat returns the order,
+other account gets HTTP 409
+trigger_price Stop trigger (INR) for SL and SL-M; buy
+above, sell below the last price
+A. Order Lifecycle, Idempotency and Square-Off
+Fig. 4 shows the lifecycle implemented by the paper engine.
+It stores the statuses open, partially filled, filled and cancelled;
+the schema also allows pending-trigger, pending, rejected and
+expired, but the supplied engine does not set them (stop orders
+
+--- PAGE 7 ---
+Phase 1: Ingestion Phase 2: Rule Gate Phase 3: Matchand Charge Phase 4: Validateand Persist
+Reject with reason
+Fig. 3. Four-phase execution workflow illustrating ingestion of the session, quote frames and order request; the rule gate (tick, circuit, lot, freeze, funds,
+staleness, idempotency); depth-walking matching with per-fill charges; and a single-transaction commit of order, fill, ledger, position and event records,
+followed by a push to the browser.
+Submitted Open Filled
+Rejected Partial
+Cancelled
+accept full fill
+rule fails partial
+rest filled
+cancel, IOC
+cancel
+modify
+Fig. 4. Paper-order state machine illustrating admission, partial fills, cancel-
+lation (including IOC remainder cancellation) and modification; the diagram
+omits the pending-trigger, pending and expired statuses, which the supplied
+engine does not set, and Rejected is an HTTP-level outcome that is not stored
+as an order status.
+start as open with no trigger time, and a rejected request
+returns an HTTP error without storing an order). The event
+log records accepted, modified, triggered, partial-fill, fill, filled
+and cancelled events. A buy stop triggers when the last price
+reaches or exceeds the trigger price and a sell stop when
+it reaches or falls below it; a triggered SL then behaves
+as a limit order and a triggered SL-M as a market order.
+Open or partially filled orders can be modified (quantity not
+below the filled quantity, with the reservation recomputed)
+or cancelled (reservation released). Each submission carries
+an idempotency_key, which the schema constrains to be
+unique across all orders: a repeat from the same account
+returns the existing order, and a repeat from another account
+is refused with HTTP 409 [16]. The automatic square-off
+submits, for each open MIS position, a market order in
+the closing direction with key auto-squareoff:<IST
+date>:<position id> (truncated to 64 characters), skip-
+ping positions that already have such an order; it bypasses the
+staleness check, so the order waits for the next quote. The gate
+lives in the operations worker: on weekdays at or after 15:20
+IST it calls the square-off routine every 10 s, with no end time
+and no holiday calendar; a legacy service with a similar gate
+is not imported by the application entry point.
+VII. E XPERIMENTAL SETUP AND SYSTEM EVALUATION
+The evaluation is a controlled, scripted replay of market
+packets and orders. Its goal is to check whether the imple-
+TABLE III
+EVALUATION ENVIRONMENT
+Item Value
+Hardware [MEASURE: CPU model, cores, RAM (GB),
+storage type]
+Operating system [MEASURE: name and version]
+Python / Node.js Minimum 3.11 / 20.19; used: [MEASURE:
+versions]
+PostgreSQL /
+Redis
+[MEASURE: versions]
+Container runtime Docker Compose [MEASURE: version]
+Quote source recorded_market_ticks.jsonl,
+SHA-256 prefix a9fd8616; provenance
+[CONFIRM: origin]
+mented workflow conforms to the specification of Sections
+IV and V and to expose where a simple baseline fails. The
+environment is recorded in TABLE III; values not available
+from the repository are placeholders to be filled from the
+machine used.
+Recorded input. The supplied recording contains 80,504
+quote records for 100 symbols (804 to 806 records per
+symbol), received over 652.7 s in non-decreasing receipt order,
+with a median inter-arrival of 6.3 ms, a 99th percentile of
+26.3 ms, a maximum of 6.2 s, and up to 194 records in one
+second. A companion file holds 100 quote snapshots, one
+per symbol, all labelled live and fresh and received within
+0.6 s. Four properties limit its use. First, every record has
+a null exchange time, so the exchange-timestamp rule of
+Equation (2) cannot be exercised on it; disorder must be
+injected using receipt time. Second, records carry last price,
+high, low, volume and previous close but no bid or ask levels,
+so depth walking (Equations (5)–(7)) cannot be evaluated on
+this file alone. Third, the content is atypical of exchange prints:
+151 records have price zero, 7,577 records (9.4%) lie outside
+the record’s own high–low band, cumulative volume decreases
+between consecutive records of a symbol in 39,770 of 80,404
+cases (49.5%), 500 consecutive records repeat both price and
+volume, and the symbols are emitted in the same fixed cyclic
+order. Cross-checking against the instrument master, all 100
+symbols are NSE cash instruments, yet 36,112 records (44.9%)
+fall outside the instrument’s circuit band and 24,827 of the
+80,353 positive-price records (30.9%) are not multiples of the
+instrument’s tick size. The recorder writes a null exchange
+
+--- PAGE 8 ---
+time by construction, because the tick-recording routine is
+called without one, and it records only updates labelled live;
+the routine that produced these updates is [CONFIRM: caller
+of the quote-store update that wrote the file]. These properties
+are consistent with a generated or mis-scaled feed, although
+the files label the source as live. Fourth, the receipt times
+correspond to 20:43–20:54 IST by arithmetic, and whether
+a market session was open is [CONFIRM: session status at
+recording time]. Accordingly, the file is used here only as a
+labelled synthetic stream for B0 and for disorder injection, and
+depth comes from the generated practice feed (Section IV-A),
+which is itself synthetic.
+Controlled scenarios. Three scenario profiles are replayed.
+1) Typical: a liquid symbol with fresh depth; marketable
+limit orders that fill within the best level; CNC and MIS
+products.
+2) Boundary: orders larger than the best level, producing
+partial fills across several levels and an open or IOC-
+cancelled remainder; prices exactly on the tick and
+circuit limits; funds equal to the reservation; an exit at
+the 15:20 IST boundary.
+3) Adversarial: duplicated and older-timestamp packets;
+bursts; stale depth with a market order; a repeated idem-
+potency key; off-tick, out-of-circuit and unaffordable
+orders that must be rejected.
+Each profile contains N1 = [ M EASU RE: count],
+N2 = [ M EASU RE: count] and N3 =
+[M EASU RE: count] orders respectively, replayed against
+M = [ M EASU RE: count] packets. This is a proof-of-
+concept engineering verification, not a field trial or user
+study.
+Baseline B0 and reference. B0 fills the full quantity at
+the last traded price, applies zero charges, processes packets
+in arrival order, applies no staleness guard and ignores the
+idempotency key; the repository contains a legacy matcher
+with this fill rule (last price, full quantity, no staleness check,
+and a 5 × intraday margin rule) but it imports a fill model
+absent from the current schema and so cannot run, and B0
+will be reimplemented as a flagged variant of the paper engine
+[CONFIRM: location of the B0 variant]. Each configuration
+is replayed T = [M EASU RE: numberof trials] times with
+random seed [MEASURE: seed] and replay file [MEASURE:
+file name, hash]. Expected fills, charges and cash are produced
+by an independent script that implements Equations (5)–(9) on
+the same replay. It must apply the same half-up rounding to
+two decimals at every step, otherwise rounding alone breaks
+the one-paisa tolerance of Protocol A. Because that script
+encodes the same specification, agreement shows implemen-
+tation conformance and not fidelity to a real exchange. The
+repository’s existing API integration test covers registration,
+capital setup, idempotent order submission, a simulated fill,
+trade history and portfolio reflection on an isolated SQLite
+database; it is not the evaluation reported here, which runs on
+PostgreSQL.
+TABLE IV
+CORRECTNESS AUDIT ON SCRIPTED SCENARIOS
+Metric (unit) B0 Quantx Diff.
+Ledger error, mean (INR/order) [M] [M] [M]
+Fill-price deviation (INR/share) [M] [M] [M]
+Charge deviation (INR/fill) [M] [M] [M]
+Fills beyond limit price (count) [M] [M] [M]
+Executions on stale depth (count) ‡ [M] [M] [M]
+Older-packet overwrites (count) ‡ [M] [M] [M]
+Extra effects of repeated key (count) ‡ [M] [M] [M]
+Invalid orders accepted (count) ‡ [M] [M] [M]
+[M] marks a value to be measured by Protocol A or B. ‡Adversarial profile
+only.
+A. Correctness Audit
+TABLE IV compares B0 with the integrated workflow. All
+adversarial rows are included so that the table cannot be read
+as a uniform pass. Results on scripted data are labelled as such
+and are not generalized.
+For the first four rows the unit of analysis is an order ( N =
+N1 + N2 + N3 = [M EASU RE: count]); for the adversarial
+rows it is an injected event ( Nadv = [M EASU RE: count]).
+Procedure: replay the file, export the ledger, and difference it
+against the independent reference.
+B. Latency and Throughput Telemetry
+TABLE V reports spread rather than means
+alone. Each operation is repeated Nop =
+[M EASU RE: countperoperation] times after a warm-up
+of [MEASURE: warm-up count], timed with [MEASURE:
+timer and clock source].
+C. Contextual Comparison
+TABLE VI states what is measured and what is only
+contextual. Rows tagged “Contextual (not measured)” are
+design statements taken from the project documentation or
+open questions, not experimental results.
+VIII. D ISCUSSION , LIMITS AND ETHICS
+Controlled Synthetic Benchmark. The evaluation uses
+scripted replays whose expected outputs come from a script
+that encodes the same specification, so it can reveal im-
+plementation defects and baseline failures but cannot reveal
+specification errors. Scenario counts are small by design, and
+conclusions are limited to the scenarios tested; threats to
+validity should be read in the usual construct, internal and
+external categories [28].
+Recorded-Input Limits. The only recording available lacks
+exchange timestamps and depth and shows signs of being
+generated, so it supports tests of ordering by receipt time and
+of B0 but not of depth-walking fidelity; hypothesis H2 on
+older-timestamp quotes is therefore testable only after injecting
+timestamps or obtaining a timestamped recording.
+Code–Documentation Discrepancies. The supplied code
+differs from the project documentation in several places.
+
+--- PAGE 9 ---
+TABLE V
+OPERATION LATENCY (MS)
+Operation Mean p50 p95 p99 Notes
+Quote ingest (decode to cache) [M] [M] [M] [M] Frame replayed in process
+Order admission (rule gate, reserve) [M] [M] [M] [M] Excludes matching
+Match and commit (request to commit) [M] [M] [M] [M] Full-depth and single-level cases reported separately
+Browser fan-out (cache to client) [M] [M] [M] [M] Loopback client
+Portfolio read (summary request) [M] [M] [M] [M] Warm cache
+TABLE VI
+MEASURED AND CONTEXTUAL COMPARISON
+Property B0 Quantx Evidence tag
+Fill price basis Last price Depth walk Measured
+(Table IV)
+Charges None Per fill, by
+product
+Measured
+(Table IV)
+Packet order Arrival Exchange
+timestamp
+Measured
+(Table IV)
+Orders to
+provider
+No No Contextual (not
+measured): by
+design
+Provider-order
+design
+– Excluded Contextual (not
+measured):
+problem
+statement
+Live-exchange
+fidelity
+Not assessed Not assessed Contextual (not
+measured)
+Learning
+outcomes
+Not assessed Not assessed Contextual (not
+measured)
+Posted charges use constants in the paper engine, whereas
+the documentation describes environment-configurable ratios
+and a default brokerage of zero; a legacy fee module uses
+other values (a brokerage of 0.05% for CNC and 0.03% for
+MIS capped at INR 20 on every fill, an exchange ratio of
+0.0000345, and no SEBI fee). A legacy matcher fills the full
+quantity at the last price and applies a 5 × intraday margin
+rule, which contradicts the documented statement that margin
+mode does not raise buying power, but it cannot be imported
+against the current schema. Two stress mechanisms exist,
+one of which perturbs prices. The schema’s pending-trigger,
+pending, rejected and expired statuses are not set by the live
+engine. The application entry point imports the paper engine
+and wires it to the feed; it does not import the legacy matcher
+or square-off service, although route modules that were not
+supplied might.
+Static and Dynamic Assumptions. Charge constants, the
+stress parameters (spread multiplier 0.005, liquidity factor 0.5)
+and the staleness threshold (120 s) are configured values, not
+statements of current official schedules or of observed market
+behavior. Cash/Margin mode and leverage choices are display
+preferences that do not change buying power or validation,
+and the auto-liquidation selector is a reminder that does not
+alter the fixed backend square-off schedule.
+External Dependency. Live quotes require authorized
+provider credentials and an active provider session, and the
+automated tests do not verify access to the provider, snapshot,
+news, mail or help services. A provider snapshot is not an
+order book, so execution is possible only where streamed or
+generated depth exists; a health response does not by itself
+show that the feed is connected.
+Single-Process and Scale Limits. The matcher processes
+each feed update inside the API process through a bounded
+queue of 10,000 quotes, and for every quote it iterates over
+all accounts under a process-wide lock using synchronous
+database sessions, so cost grows with the number of accounts;
+the Redis stream is retained for inspection and future worker
+separation rather than used as a distributed work queue,
+and one elected process owns the upstream session. The
+provider’s 100-instrument limit bounds concurrent subscrip-
+tions. Throughput beyond the load levels in Section VII is not
+assessed.
+Fill-Fidelity Limits. Matching consumes at most five dis-
+played levels, depth consumption is not shared across ac-
+counts, and when no eligible level exists a marketable order is
+filled at the last price, so depth-less feeds degrade toward last-
+price execution. Intraday sells are not checked against funds,
+market orders are not circuit-checked, no code path expires
+DAY orders, and 4,433 of 9,939 NSE cash instruments in the
+supplied master carry a board lot of 100, which forces order
+quantities to multiples of 100. We make no claim about queue
+position, hidden liquidity, the user’s own market impact, or
+agreement with real exchange fills; that question is deferred
+to Protocol D.
+Human and Advisory Decision Boundary. Quantx is
+educational software and not a broker or investment adviser.
+The optional help assistant cannot submit orders or change
+the account, and planned coaching and analytics features are
+roadmap items that were not evaluated.
+Interpretation Risk. Simulated profit and loss is subject
+to the same overfitting and selection concerns as any backtest
+[20], and practice without real financial consequence may not
+transfer to live behavior. The paper therefore reports feasibility
+of the mechanisms and not the educational value of the
+product.
+Privacy and Security. Provider credentials remain server
+side, passwords are hashed, and reset tokens are single use;
+these are design properties described in the documentation,
+and they were not independently audited.
+
+--- PAGE 10 ---
+IX. C ONCLUSION AND REPRODUCIBLE FUTURE
+EVALUATION PROTOCOLS
+We developed Quantx, a four-tier paper-trading workspace
+in which a provider boundary separates read-only market data
+from an authoritative accounting plane. In the scripted sce-
+narios of Section VII, the measured outcomes for hypotheses
+H1–H3 were [MEASURE: one-sentence summary of Tables
+IV and V once populated]; this paper claims feasibility of the
+mechanisms and nothing about fill fidelity, learning outcomes
+or production readiness. The following protocols make the
+remaining questions reproducible [21]; each states its success
+criterion before testing.
+A. Ledger and Fill Conformance. Units: orders from the
+three scenario profiles, replayed from a single file. Metrics:
+εM = maxn
+M recn − M refn  , δ p = 1Nf NfXn=1 ¯precn − ¯prefn  ,(14)
+where M recn and M refn are the recorded and reference cash
+changes of order n (INR), ¯precn and ¯prefn are the recorded and
+reference average fill prices (INR), Nf is the number of fills,
+εM is in INR and δp is in INR per share. Conditions: B0
+versus Quantx. Success criterion: εM ≤ 0.01 IN Rand zero
+fills beyond the limit price.
+B. Feed-Disorder Recovery. Units: replay streams with
+injected duplicates, reordering and bursts. Metrics:
+O =
+X
+k
+⊮[τk < τ∗s ∧ cache updated by k] , (15)
+where O is the stale-overwrite count (unitless) and the other
+symbols are as in Equation (2); the final cached quote is also
+compared with the packet of maximum timestamp.Conditions:
+arrival-order processing (B0) versus Equations (2) and (3).
+Success criterion: O = 0 in every replay and a matching final
+quote in every replay.
+C. Latency and Throughput. Units: operations of each
+type at each offered load. Metrics: order statistics
+ℓq = x(⌈qN ⌉), q ∈ {0.50, 0.95, 0.99}, (16)
+where x(j) is the j-th smallest of N measured latencies (ms)
+and ℓq is the q-quantile latency (ms), plus throughput (orders/s)
+at each load level [CONFIG: offered load levels]. Conditions:
+idle and loaded host. Success criterion: ℓ0.99 for match-and-
+commit at most [CONFIG: target, ms, fixed before testing],
+with no rejected valid orders.
+D. Independent Fidelity Assessment. Units: historical
+orders replayed against recorded depth from a source inde-
+pendent of the system, [CONFIRM: data source and license];
+the supplied tick file lacks depth and cannot serve this purpose.
+Metrics:
+∆bp = 104 ¯psim − ¯pobs¯pobs , (17)
+where ∆bp is the signed deviation in basis points, ¯psim is
+the simulated and ¯pobs the observed average price (INR).
+Conditions: Quantx in normal and stress modes. Success
+criterion: median |∆bp| ≤[CONFIG: pre-registered threshold,
+bp]. A learning-outcome study would require separate design
+and ethical review and is out of scope.
+APPENDIX A
+ORDER AND SCENARIO SCHEMA
+Request fields as documented; enumerations marked “ex-
+ample” were shown only by example in the source documen-
+tation.
+POST /api/orders
+{
+"instrument_id": "<UUID>",
+"side": "BUY", // example
+"product": "CNC", // CNC | MIS
+"order_type": "LIMIT", // MARKET|LIMIT|SL|SL-M
+"quantity": 10,
+"limit_price": "500.00", // INR string
+"validity": "DAY", // DAY | IOC
+"idempotency_key": "..."
+}
+POST /api/scenarios
+{ "name": "...",
+"shocks": {"SYMBOL": -5, "OTHER": 3.5} }
+PUT /api/account/trading-settings/stress-mode
+{ "enabled": true }
+WS /api/market/ws (client -> server)
+{ "task": "subscribe", "symbols": ["SYMBOL"] }
+Principal tables from the data model, with selected con-
+straints (types abbreviated):
+accounts: cash_balance>=0, initial_capital>0,
+cash_balance, reserved_cash NUMERIC(14,2),
+stress_mode BOOL, commission_per_order,
+regulatory_fee_percent NUMERIC(8,6)
+instruments: symbol, exchange (unique pair),
+lot_size, board_lot_quantity, freeze_quantity,
+tick_size_paise, lower/upper_circuit_paise,
+provider_token
+orders: quantity>0, 0<=filled_quantity<=quantity,
+side IN (BUY,SELL), product IN (CNC,MIS),
+order_type IN (MARKET,LIMIT,SL,SL-M),
+status IN (PENDING_TRIGGER,PENDING,OPEN,
+PARTIALLY_FILLED,FILLED,CANCELLED,
+REJECTED,EXPIRED),
+limit_price, trigger_price, avg_exec_price,
+reserved_amount, validity DEFAULT DAY,
+idempotency_key VARCHAR(64) UNIQUE (8-64 in API)
+trades: quantity>0, price>0,
+UNIQUE(order_id, sequence)
+trade_charges: brokerage, exchange_fee,
+sebi_fee, stt, stamp_duty, gst, total
+order_events: event_type, status, details JSON
+positions: UNIQUE(account,instrument,product),
+quantity, buy/sell_quantity, buy/sell_amount,
+average_price, realized_pnl
+cash_ledger: entry_type IN (INITIAL_CAPITAL,
+TRADE_DEBIT,TRADE_CREDIT,CHARGE,ADJUSTMENT,
+RESET), amount, balance_after,
+idempotency_key UNIQUE
+Other tables are users, password_reset_tokens,
+scenario_runs, saved_scenarios and
+portfolio_safepoints. The schema has no
+nonnegativity check on position quantity, and the paper
+engine uses signed quantities, so intraday short positions are
+representable.
+Positioning statement. Quantx is presented here as a proof-
+of-concept for a boundary-enforced, locally executed NSE
+equity paper-trading workflow whose mechanisms are spec-
+ified and whose conformance is tested on scripted scenarios,
+not as a validated replica of exchange execution, an educa-
+
+--- PAGE 11 ---
+tional intervention with demonstrated outcomes, a broker, or
+a production-ready system.
+REFERENCES
+[1] L. Harris, Trading and Exchanges: Market Microstructure for Practi-
+tioners. New York, NY , USA: Oxford Univ. Press, 2003.
+[2] J. Hasbrouck, Empirical Market Microstructure: The Institutions, Eco-
+nomics, and Econometrics of Securities Trading. New York, NY , USA:
+Oxford Univ. Press, 2007.
+[3] M. D. Gould, M. A. Porter, S. Williams, M. McDonald, D. J. Fenn,
+and S. D. Howison, “Limit order books,” Quantitative Finance, vol. 13,
+no. 11, pp. 1709–1742, 2013.
+[4] J. Gray and A. Reuter, Transaction Processing: Concepts and Tech-
+niques. San Mateo, CA, USA: Morgan Kaufmann, 1993.
+[5] M. Kleppmann, Designing Data-Intensive Applications . Sebastopol,
+CA, USA: O’Reilly Media, 2017.
+[6] R. Almgren and N. Chriss, “Optimal execution of portfolio transactions,”
+Journal of Risk , vol. 3, no. 2, pp. 5–39, 2001.
+[7] A. S. Kyle, “Continuous auctions and insider trading,” Econometrica,
+vol. 53, no. 6, pp. 1315–1335, 1985.
+[8] L. R. Glosten and P. R. Milgrom, “Bid, ask and transaction prices in
+a specialist market with heterogeneously informed traders,” Journal of
+Financial Economics, vol. 14, no. 1, pp. 71–100, 1985.
+[9] R. Cont, S. Stoikov, and R. Talreja, “A stochastic model for order book
+dynamics,” Operations Research, vol. 58, no. 3, pp. 549–563, 2010.
+[10] B. M. Barber and T. Odean, “Trading is hazardous to your wealth:
+The common stock investment performance of individual investors,” The
+Journal of Finance , vol. 55, no. 2, pp. 773–806, 2000.
+[11] ——, “Online investors: Do the slow die first?” The Review of Financial
+Studies, vol. 15, no. 2, pp. 455–488, 2002.
+[12] B. M. Barber, Y .-T. Lee, Y .-J. Liu, and T. Odean, “Just how much do
+individual investors lose by trading?” The Review of Financial Studies ,
+vol. 22, no. 2, pp. 609–632, 2009.
+[13] T. Akidau, R. Bradshaw, C. Chambers, S. Chernyak, R. J. Fern ´andez-
+Moctezuma, R. Lax, S. McVeety, D. Mills, F. Perry, E. Schmidt, and
+S. Whittle, “The dataflow model: A practical approach to balancing
+correctness, latency, and cost in massive-scale, unbounded, out-of-order
+data processing,” Proceedings of the VLDB Endowment , vol. 8, no. 12,
+pp. 1792–1803, 2015.
+[14] L. Lamport, “Time, clocks, and the ordering of events in a distributed
+system,” Communications of the ACM, vol. 21, no. 7, pp. 558–565, 1978.
+[15] J. Hasbrouck and G. Saar, “Low-latency trading,” Journal of Financial
+Markets, vol. 16, no. 4, pp. 646–679, 2013.
+[16] P. Helland, “Idempotence is not a medical condition,” Communications
+of the ACM , vol. 55, no. 5, pp. 56–65, 2012.
+[17] J.-P. Bouchaud, J. D. Farmer, and F. Lillo, “How markets slowly
+digest changes in supply and demand,” in Handbook of Financial
+Markets: Dynamics and Evolution , T. Hens and K. R. Schenk-Hopp ´e,
+Eds. Amsterdam, The Netherlands: North-Holland, 2009, pp. 57–160,
+vERIFY page range and editors.
+[18] Securities and Exchange Board of India, “Analysis of profitability of
+individual traders dealing in equity F&O segment,” SEBI, Mumbai,
+India, Tech. Rep., 2023, vERIFY title, date and issuing department.
+[19] D. A. Kolb, Experiential Learning: Experience as the Source of Learning
+and Development. Englewood Cliffs, NJ, USA: Prentice-Hall, 1984.
+[20] D. H. Bailey, J. M. Borwein, M. L ´opez de Prado, and Q. J. Zhu,
+“Pseudo-mathematics and financial charlatanism: The effects of backtest
+overfitting on out-of-sample performance,” Notices of the American
+Mathematical Society, vol. 61, no. 5, pp. 458–471, 2014.
+[21] R. D. Peng, “Reproducible research in computational science,” Science,
+vol. 334, no. 6060, pp. 1226–1227, 2011.
+[22] R. T. Fielding, “Architectural styles and the design of network-based
+software architectures,” Ph.D. dissertation, Univ. of California, Irvine,
+Irvine, CA, USA, 2000.
+[23] I. Fette and A. Melnikov, “The WebSocket protocol,” RFC 6455, Internet
+Engineering Task Force, 2011.
+[24] A. Biryukov, D. Dinu, and D. Khovratovich, “Argon2: New generation
+of memory-hard functions for password hashing and other applications,”
+in Proc. IEEE Eur. Symp. Security and Privacy (EuroS&P) , 2016, pp.
+292–302, vERIFY pages.
+[25] M. Jones, J. Bradley, and N. Sakimura, “JSON web token (JWT),” RFC
+7519, Internet Engineering Task Force, 2015.
+[26] M. Fowler, Patterns of Enterprise Application Architecture . Boston,
+MA, USA: Addison-Wesley, 2002.
+[27] OW ASP Foundation, “Forgot password cheat sheet,” OW ASP Cheat
+Sheet Series. [Online]. Available: https://cheatsheetseries.owasp.org/
+cheatsheets/Forgot Password Cheat Sheet.html, accessed: [VERIFY
+access date].
+[28] C. Wohlin, P. Runeson, M. H ¨ost, M. C. Ohlsson, B. Regnell, and
+A. Wessl ´en, Experimentation in Software Engineering . Berlin, Ger-
+many: Springer, 2012.
