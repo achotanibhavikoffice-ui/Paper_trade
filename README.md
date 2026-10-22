@@ -1,6 +1,6 @@
 <div align="center">
-  <h1>Paper_trade — Next-Gen Indian Market Paper Trading &amp; Strategy Simulator</h1>
-  <p><em>A zero-risk workspace for learning Indian equities, practicing simulated orders, and understanding how execution costs affect a portfolio.</em></p>
+  <h1>Quantx — Indian Market Paper Trading Workspace</h1>
+  <p><em>Explore Indian equities, practise simulated orders, and learn market mechanics without risking real money.</em></p>
   <p>
     <img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript-149eca?logo=react&logoColor=white" alt="React and TypeScript">
     <img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
@@ -12,9 +12,9 @@
   </p>
 </div>
 
-**Paper_trade** is the repository name; **Quantx** is the application brand. Quantx is a practice workspace for Indian equities where learners can explore instruments, place simulated orders, and see how fills, fees, cash, positions, and profit and loss interact. It is designed to make the move from learning market concepts to practicing an order workflow without risking real funds.
+**Quantx** is an Indian-equity paper-trading workspace for learning how market data, order execution, fees, cash, positions, and profit and loss fit together. Users can explore listed instruments, practise simulated orders, review portfolio scenarios, and learn market concepts without risking real funds.
 
-The app combines a local paper-order engine with configurable brokerage assumptions, account controls, market-data integrations, and analysis tools. Orders and account activity stay inside Quantx: the 021 integration is used for authentication, instrument reference data, and market quotes, never for sending orders. Quote labels distinguish exchange-stream data, third-party snapshots, and generated practice data so users can judge what they are seeing.
+The app combines a local paper-order engine with configurable brokerage assumptions, account controls, market-data integrations, and analysis tools. Orders and account activity stay inside Quantx: the 021 integration is used for authentication, instrument reference data, and market quotes, never for sending orders. Quote labels distinguish exchange-stream data, third-party snapshots, and generated practice data so users can judge what they are seeing. The dashboard includes a dismissible getting-started guide, and the in-app Quantx Guide explains workspace features and Indian-market concepts.
 
 > **Practice environment:** Balances, orders, fills, and positions in Quantx are simulated. Market data availability depends on configured providers and market sessions. This is educational software, not a broker or investment adviser.
 
@@ -29,7 +29,7 @@ The app combines a local paper-order engine with configurable brokerage assumpti
 - [Settings and simulation controls](#-settings--simulation-controls)
 - [API surface](#-api-surface)
 - [UI showcase](#-ui-showcase)
-- [AI and analytics roadmap](#-ai--analytics-roadmap)
+- [Quantx Guide](#-quantx-guide)
 - [Checks and development](#-checks-and-development)
 - [Deployment](#-deployment)
 - [Security and market-data notes](#-security-and-market-data-notes)
@@ -41,6 +41,7 @@ The app combines a local paper-order engine with configurable brokerage assumpti
 ### 1. Simulation and account controls
 
 - **Stepped virtual-capital selector:** A ruler-style selector offers ₹1L–₹10L in ₹1L steps, ₹20L, then ₹25L–₹50L in ₹5L steps. The selected starting amount becomes the account's initial virtual capital.
+- **Account reconciliation:** The selected setup amount is recorded as the initial virtual capital grant. Available cash reflects cash reserved for open orders, and cash changes are recorded in the audit ledger.
 - **Balance and history reset:** Restore virtual cash or reset the practice account and its simulated trading history. Full reset affects the practice account records; it does not remove the user's login.
 - **Cash and margin preferences:** Settings offers Cash/Margin modes and leverage choices. These are currently planning/display preferences; Margin mode does **not** increase executable buying power or change order validation.
 - **Fee simulation:** Per-order brokerage and an optional additional regulatory fee can be configured. Exchange, SEBI, GST, STT, and stamp-duty assumptions are also configurable by the backend environment. These are simulation assumptions and should be checked against current published schedules before a demo.
@@ -62,6 +63,7 @@ The app combines a local paper-order engine with configurable brokerage assumpti
 - **Password recovery:** Request a single-use, time-limited reset link. In local development, the link is printed to the backend terminal unless SMTP is configured.
 - **Theme:** Light, dark, and system-synced appearance preferences.
 - **Workspace:** Dashboard, Explore, stock details, Watchlist, Market News, Orders, Portfolio, Holdings, Positions, Learn, What-If Lab, Market Stress, Recovery Shield, Notifications, and account pages.
+- **Getting started:** A dismissible dashboard guide introduces instrument search, chart review, and safe simulated practice.
 
 ### 4. Market data and research
 
@@ -71,12 +73,12 @@ The app combines a local paper-order engine with configurable brokerage assumpti
 - **Market News:** Optional Marketaux integration for financial headlines.
 - **Source labels:** The UI distinguishes feed state and quote source. `DATA` means generated practice values; `API SNAPSHOT` means a provider snapshot; a connected market-feed badge indicates the streaming provider state.
 
-### 5. AI-powered trading intelligence
+### 5. Quantx Guide
 
-- **Available now — Quantx Guide:** In-app help explains workspace pages and common market concepts. The built-in knowledge base works without an AI key. An optional OpenAI Responses API integration can generate richer replies; replies fall back to the built-in guide if the provider is unavailable.
-- **Planned — contextual concept co-pilot:** Explain metrics such as margin, Greeks, and slippage in the context of a selected practice trade.
-- **Planned — behavioral and fee-drag analysis:** Review completed practice sessions for patterns such as repeated entries, oversized positions, and the impact of simulated charges. This is not currently an automated diagnostic.
-- **Planned — macro and sentiment synthesis:** Summarize market events and explore hypothetical portfolio shocks. Current Market News and What-If features do not constitute this planned synthesis engine.
+- **Workspace help and market learning:** Explains page controls and common Indian-equity concepts, including credit, debt, credit risk, and margin funding. Replies are kept concise and include a technical explanation plus a beginner-friendly summary.
+- **Current market overview:** When asked, the guide checks the market session and uses a verified provider index snapshot when available. Outside regular hours it identifies the normal close and treats available prices as historical references. Exchange holidays and provider availability may affect the reported snapshot.
+- **Advice boundaries:** The guide does not provide personalized buy, sell, or hold recommendations. It responds to unrelated questions by directing users back to Quantx and market topics.
+- **Optional generated answers:** The built-in guide works without an AI key. If `OPENAI_API_KEY` is configured, OpenAI Responses may generate answers; the backend applies the same topic and advice boundaries and falls back to built-in guidance if the provider is unavailable.
 
 ## 🏗️ Architecture
 
@@ -353,17 +355,16 @@ Add current product screenshots under `docs/screenshots/` and update the image p
 | **Paper order and portfolio** | **Settings and capital setup** |
 | ![Paper order and portfolio screenshot placeholder](docs/screenshots/portfolio.png) | ![Settings and capital setup screenshot placeholder](docs/screenshots/settings-capital-setup.png) |
 
-## 🧭 AI & analytics roadmap
+## 🧭 Quantx Guide
 
-Quantx Guide currently combines project-specific page knowledge with an offline reference for common market concepts. When `OPENAI_API_KEY` is configured, the backend may use the OpenAI Responses API for generated support answers; it is optional and server-side only. The guide is not an autonomous trading agent and cannot submit orders or alter the account.
+Quantx Guide is the in-app assistant for Indian-market learning and help with Quantx. It can explain market concepts and workspace controls, provide a market-session overview using verified provider snapshots when available, and refer to the last normal close when the cash market is closed. Market snapshots may be unavailable, delayed, or cached, and the guide identifies the source limitations instead of inventing a quote.
 
-Planned work is tracked separately from shipping features:
+The assistant has strict boundaries:
 
-1. **Trade-context concept explanations:** Explain execution metrics in the context of a selected paper order while clearly separating quote facts from assumptions.
-2. **Practice-session diagnostics:** Analyze user-authorized simulated order history for sizing patterns, repeated trades, and accumulated simulated fees; show evidence and let the user inspect the underlying trades.
-3. **Macro/event scenarios:** Summarize sourced news and let users test transparent, user-selected hypothetical shocks in What-If Lab.
-
-These items are roadmap ideas, not claims of current product capability. Any future recommendations should remain educational, cite their source data, and avoid presenting predictions as certainty.
+- It answers questions about Quantx and Indian-market concepts; unrelated questions are redirected to those topics.
+- It does not make stock selections, price predictions, or personalized buy, sell, or hold decisions. Recommendation requests receive an investment-advice disclaimer.
+- Answers aim to be concise, with a technical explanation and a plain-language summary.
+- The built-in guide works without an OpenAI credential. If `OPENAI_API_KEY` is set, generated responses use the backend integration and fall back to built-in guidance if it is unavailable.
 
 ## 🧪 Checks and development
 
@@ -414,7 +415,7 @@ Issues and pull requests are welcome. For a useful contribution:
 
 ## 📄 Project status and license
 
-Quantx is under active development. Some workspace preferences are browser-local, market-data availability depends on external services, and AI coaching features beyond the help guide are planned.
+Quantx is an educational paper-trading application under active development. Some preferences are stored in the browser, simulated trading is not connected to a broker order system, and market-data features depend on external provider access, plan limits, and market hours. The chatbot provides market education and workspace help, not investment advice.
 
 This project is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for the full terms and copyright notice.
 
