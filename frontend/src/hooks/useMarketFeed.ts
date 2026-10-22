@@ -3,7 +3,7 @@ import { marketApi, type Quote } from '../api';
 
 type FeedMessage = { type: string; data?: Quote; snapshots?: Quote[] };
 
-export function useMarketFeed(symbols: string[], options: { pollIndianApi?: boolean } = {}) {
+export function useMarketFeed(symbols: string[], options: { pollIndianApi?: boolean; refreshKey?: number } = {}) {
   const subscription = useMemo(() => [...new Set(symbols.map((value) => value.trim().toUpperCase()).filter(Boolean))].sort(), [symbols.join(',')]);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [state, setState] = useState<'idle' | 'connecting' | 'live' | 'offline'>('idle');
@@ -50,7 +50,7 @@ export function useMarketFeed(symbols: string[], options: { pollIndianApi?: bool
       window.clearTimeout(retryTimer);
       socket?.close();
     };
-  }, [subscription.join(','), options.pollIndianApi]);
+  }, [subscription.join(','), options.pollIndianApi, options.refreshKey]);
 
   return { quotes, state };
 }

@@ -151,8 +151,8 @@ sequenceDiagram
 | Source | Used for | What to expect |
 | --- | --- | --- |
 | 021 developer API | Optional instrument synchronization and streaming market quotes/depth | Requires authorized credentials and an active provider session; Quantx does not submit orders to this API |
-| IndianAPI | Optional price snapshots, market movers, company details, and chart history | Periodic/cached reference data; snapshots are not a streaming order book |
-| Generated practice feed | Local quote and depth simulation | Synthetic data for exercising charts and the paper matcher; shown with a practice-data source label |
+| IndianAPI | Optional price snapshots, market movers, company details, and chart history | Periodic/cached reference data; snapshots are not a streaming order book and are limited by the configured API plan |
+| Generated practice feed | Optional local quote and depth simulation (`DEMO_MARKET_DATA_ENABLED=true`) | Synthetic data for exercising charts and the paper matcher; shown with a practice-data source label, never as live market prices |
 | Marketaux | Optional financial-news results | Requires a server-side API token; responses may be cached or unavailable |
 | Quantx knowledge / optional OpenAI | In-app page help and market concept explanations | Built-in answers work without a key; generated answers require a backend-only OpenAI key |
 
@@ -214,7 +214,7 @@ docker compose up --build -d
 
 Open the app at [http://localhost:5173](http://localhost:5173). The API health endpoint is [http://localhost:4000/api/health](http://localhost:4000/api/health). Compose starts the frontend, FastAPI, PostgreSQL, and Redis. The local PostgreSQL host port defaults to `5433`; inside Compose, the API uses `db:5432`.
 
-Compose reads `backend/.env` and root `.env`. Copy `backend/.env.example` to `backend/.env` if it is missing. For Docker overrides, create a root `.env` file. The Compose development defaults include a generated practice market feed; they do not establish a live exchange feed.
+Compose reads `backend/.env` and root `.env`. Copy `backend/.env.example` to `backend/.env` if it is missing. For Docker overrides, create a root `.env` file. Generated practice quotes are opt-in with `DEMO_MARKET_DATA_ENABLED=true`; they are not live exchange data.
 
 Useful commands:
 
@@ -283,6 +283,7 @@ For a local PostgreSQL install on Windows, see the database instructions in [ARC
 | `MARKET_DATA_ENABLED` | Optional | Connect to 021 when authorized credentials are set |
 | `MARKET_DATA_USERNAME`, `MARKET_DATA_PASSWORD` | 021 only | Developer credentials used server-side for provider authentication |
 | `INDIAN_API_KEY` | Optional | IndianAPI history, movers, snapshots, and company reference data |
+| `INDIAN_API_QUOTE_POLL_SECONDS`, `INDIAN_API_QUOTE_MAX_SYMBOLS` | Optional | Snapshot polling interval and rotating per-cycle symbol batch size; reduce to stay within the provider plan's quota |
 | `MARKETAUX_API_TOKEN` | Optional | Financial news integration |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Optional | Generated Help & Support replies; built-in guide remains available without a key |
 | `PAPER_BROKERAGE_PER_ORDER` and `PAPER_*` fee variables | Optional | Default simulated brokerage, exchange, SEBI, GST, STT, and stamp-duty assumptions |

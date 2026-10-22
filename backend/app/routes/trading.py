@@ -303,7 +303,9 @@ def get_market_status(user: User = Depends(get_current_user)) -> dict[str, Any]:
     latest = max(timestamps, default=None)
     return {"enabled": market_data.provider.configured or settings.demo_market_data_enabled or indian_api.configured, "connected": market_data.connected,
             "quote_count": len(market_data.quotes), "last_update": latest.isoformat() if latest else None,
-            "mode": market_data.mode, "order_execution": "local paper simulator",
+            "mode": market_data.mode, "provider_error": market_data.provider_error,
+            "indian_api": indian_api.status,
+            "order_execution": "local paper simulator",
             "quote_max_age_seconds": settings.market_quote_max_age_seconds}
 
 

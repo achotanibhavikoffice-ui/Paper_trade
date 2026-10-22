@@ -54,7 +54,12 @@ export type Scenario = {
     current_market_value: string; projected_market_value: string; projected_value_change: string; note: string };
   created_at: string;
 };
-export type MarketStatus = { enabled: boolean; connected: boolean; quote_count: number; last_update: string | null; mode: 'demo' | 'full' | 'hybrid' | string; order_execution: string; quote_max_age_seconds?: number };
+export type MarketStatus = {
+  enabled: boolean; connected: boolean; quote_count: number; last_update: string | null;
+  mode: 'demo' | 'full' | 'hybrid' | 'indianapi' | 'snapshot+demo' | string;
+  order_execution: string; quote_max_age_seconds?: number; provider_error?: string | null;
+  indian_api?: { configured: boolean; last_success_at: string | null; last_error: { code: string; message: string } | null; retry_after_seconds: number };
+};
 export type PortfolioSummary = { cash_balance: string; reserved_cash: string; market_value: string; equity: string; realized_pnl: string; unrealized_pnl: string; total_pnl: string; open_positions: number; open_orders: number; stress_mode: boolean };
 export type SupportChatMessage = { role: 'user' | 'assistant'; content: string };
 export type SupportChatReply = { answer: string; mode: 'ai' | 'guide'; actions: { label: string; path: string }[] };
