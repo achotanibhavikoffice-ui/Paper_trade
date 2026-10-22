@@ -82,9 +82,9 @@ export const AccountPage: React.FC = () => {
           {" "}
           <StatCard
             label="Available Cash"
-            value={account ? formatINR(account.cash_balance) : "—"}
+            value={account ? formatINR(Math.max(0, Number(account.cash_balance) - Number(account.reserved_cash))) : "—"}
             icon={<Wallet className="w-5 h-5" />}
-            subtext="Virtual funds ready for deployment"
+            subtext={account && Number(account.reserved_cash) > 0 ? `${formatINR(account.reserved_cash)} reserved for open orders` : "Virtual funds ready for deployment"}
           />{" "}
           <StatCard
             label="Initial Capital"
@@ -199,7 +199,7 @@ export const AccountPage: React.FC = () => {
                   return (
                     <tr
                       key={entry.id}
-                      className="hover:bg-slate-50/50 :bg-white/30"
+                      className="account-ledger-row hover:bg-slate-50/50"
                     >
                       {" "}
                       <td className="px-4 py-3 font-mono text-xs text-slate-500">
@@ -244,18 +244,14 @@ export const AccountPage: React.FC = () => {
         )}{" "}
       </div>{" "}
       {/* Virtual Account Policies Footnote */}{" "}
-      <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 flex items-start gap-4">
+      <div className="account-privacy-banner bg-slate-50 rounded-xl p-5 border border-slate-200 flex items-start gap-4">
         {" "}
         <HelpCircle className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />{" "}
         <div className="text-xs text-slate-600 leading-relaxed">
           {" "}
-          <span className="font-semibold text-slate-800 ">
-            Milestone Notice:
-          </span>{" "}
-          Real money deposit integration, credit card top-ups, and account reset
-          utilities are disabled in this paper-trading environment. Account
-          funds are strictly virtual and reset capabilities will be introduced
-          in future system updates.{" "}
+          <span className="font-semibold text-slate-800 ">Virtual account:</span>{" "}
+          Your balance and trade history are simulated. You can reset virtual cash or
+          clear the practice account from Settings; every change is reflected in this ledger.
         </div>{" "}
       </div>{" "}
     </div>

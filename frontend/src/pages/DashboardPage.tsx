@@ -24,6 +24,7 @@ export function DashboardPage({ user }: { user: User | null }) {
   const [quantity, setQuantity] = useState(localStorage.getItem('quantx_default_order_size') || '1');
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const [showQuickStart, setShowQuickStart] = useState(() => localStorage.getItem(`quantx_quickstart_dismissed_${user?.id ?? 'guest'}`) !== 'true');
   const trackedSymbols = useMemo(() => [...new Set([...initialSymbols, selected, ...positions.map((p) => p.symbol)])], [positions, selected]);
   const { quotes, state: feedState } = useMarketFeed(trackedSymbols);
   const selectedQuote = quotes[selected];
@@ -105,6 +106,15 @@ export function DashboardPage({ user }: { user: User | null }) {
         </div>
         <div className={`trade-feed-badge ${marketConnected ? 'feed-live' : 'feed-idle'}`} title={snapshotQuote ? 'IndianAPI price snapshots refresh about once per minute. They do not include market depth and cannot drive simulated fills.' : demoMode ? 'The backend generates practice prices when 021 has no current quote. Trades settle only in the local paper account.' : marketStatusUnavailable ? 'Could not read the authenticated market status endpoint.' : undefined}><i />{snapshotQuote ? 'API SNAPSHOT' : demoMode ? 'DATA' : marketConnected ? 'LIVE MARKET FEED' : marketStatusUnavailable ? 'MARKET STATUS UNAVAILABLE' : !marketStatus ? 'CHECKING MARKET FEED' : marketStatus.enabled ? 'CONNECTING TO FEED' : 'MARKET FEED NOT CONFIGURED'}</div>
       </section>
+
+      {showQuickStart && <section className="trade-quickstart" aria-label="Getting started with Quantx">
+        <div className="trade-quickstart-heading"><span className="trade-quickstart-icon"><Layers3 size={18} /></span><div><strong>Start practising in three steps</strong><p>A short guide to the main Quantx workflow.</p></div><button type="button" onClick={() => { localStorage.setItem(`quantx_quickstart_dismissed_${user?.id ?? 'guest'}`, 'true'); setShowQuickStart(false); }} aria-label="Dismiss getting started guide">×</button></div>
+        <div className="trade-quickstart-steps">
+          <button type="button" onClick={() => navigate('/explore')}><span>1</span><strong>Find a share</strong><small>Search NSE instruments and check the quote source and time.</small><ArrowRight size={15} /></button>
+          <button type="button" onClick={() => navigate('/stocks/RELIANCE')}><span>2</span><strong>Review its chart</strong><small>Open an instrument to inspect price history and available facts.</small><ArrowRight size={15} /></button>
+          <button type="button" onClick={() => navigate('/learn')}><span>3</span><strong>Practise safely</strong><small>Learn order types, then place a simulated order when a fresh quote is available.</small><ArrowRight size={15} /></button>
+        </div>
+      </section>}
 
       <section className="trade-hero-grid four" aria-label="Paper portfolio summary">
         <article className="trade-equity-card">

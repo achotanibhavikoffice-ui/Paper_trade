@@ -12,7 +12,7 @@ type ChatMessage = SupportChatMessage & {
 const welcome: ChatMessage = {
   id: 0,
   role: 'assistant',
-  content: 'Hi! I’m Quantx Guide. Ask me how to use this page or find a feature in your workspace.',
+  content: 'Hi! I’m Quantx Guide. Ask about Quantx, Indian-market concepts, or the current market overview. I can explain data, but I can’t recommend shares or tell you to buy or sell.',
   mode: 'guide',
 };
 function promptsForPage(path: string): string[] {
@@ -24,7 +24,7 @@ function promptsForPage(path: string): string[] {
   if (path === '/account') return ['Explain this page', 'What is available cash?', 'What does the cash ledger record?'];
   if (path === '/market-stress') return ['Explain this page', 'What do Mild, High, and Panic mean?', 'Does stress mode change real prices?'];
   if (path === '/recovery') return ['Explain this page', 'What is a SafePoint?', 'What does rollback restore?'];
-  return ['Explain this page', 'Where can I find my orders?', 'What does available cash mean?'];
+  return ['Current market overview', 'Explain this page', 'What does available cash mean?'];
 }
 
 export function HelpChatPanel({
@@ -68,7 +68,7 @@ export function HelpChatPanel({
     setDraft('');
     setSending(true);
     try {
-      const reply = await supportApi.chat(content, currentHistory, `${pageTitle} (${page})`);
+      const reply = await supportApi.chat(content, currentHistory, page);
       setMessages((current) => [...current, {
         id: messageId.current++, role: 'assistant', content: reply.answer, mode: reply.mode, actions: reply.actions,
       }]);
@@ -92,15 +92,16 @@ export function HelpChatPanel({
       <button className="help-chat-scrim" onClick={onClose} aria-label="Close help assistant" />
       <section className="help-chat-panel" role="dialog" aria-modal="true" aria-labelledby="help-chat-title">
         <header className="help-chat-header">
-          <span className="help-chat-avatar"><Bot size={20} /></span>
+          <span className="help-chat-avatar"><Bot size={20} /><i><Sparkles size={10} /></i></span>
           <div className="help-chat-title-wrap">
             <strong id="help-chat-title">Quantx Guide</strong>
-            <span><i /> Market concepts and workspace help</span>
+            <span><i /> Your market learning copilot</span>
           </div>
+          <span className="help-chat-header-tag">BETA</span>
           <button className="help-chat-close" onClick={onClose} aria-label="Close help assistant"><X size={19} /></button>
         </header>
 
-        <div className="help-chat-context"><Sparkles size={14} /> Helping with <strong>{pageTitle}</strong></div>
+        <div className="help-chat-context"><Sparkles size={14} /> Helping with <strong>{pageTitle}</strong><span className="help-chat-context-live"><i /> READY</span></div>
 
         <div className="help-chat-messages" ref={scrollRef} aria-live="polite">
           {messages.map((message) => (
@@ -128,11 +129,11 @@ export function HelpChatPanel({
 
         <form className="help-chat-compose" onSubmit={submit}>
           <label className="sr-only" htmlFor="help-chat-input">Ask Quantx Guide</label>
-          <input id="help-chat-input" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask about markets or how to use Quantx…" maxLength={1200} disabled={sending} />
+          <input id="help-chat-input" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ask about Quantx or Indian markets…" maxLength={1200} disabled={sending} />
           <button type="submit" aria-label="Send message" disabled={sending || !draft.trim()}><Send size={16} /></button>
           <small><CornerDownLeft size={12} /> Enter to send</small>
         </form>
-        <footer className="help-chat-footer"><MessageCircle size={13} /> General market education; Quantx prices and orders may be simulated.</footer>
+        <footer className="help-chat-footer"><MessageCircle size={13} /> Market education only · No personalized investment advice</footer>
       </section>
     </div>
   );

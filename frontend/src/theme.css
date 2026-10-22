@@ -584,3 +584,26 @@ html.dark .settings-theme-options-three .settings-theme-option { background: #17
 html.dark .settings-theme-options-three .settings-theme-option.selected { border-color: #39a98b !important; background: #1b302f !important; }
 html.dark .settings-theme-options-three .settings-theme-copy strong { color: #e6edf2 !important; }
 html.dark .settings-theme-options-three .settings-theme-copy small { color: #a1b0bc !important; }
+
+/* Account audit and first-run guidance stay readable in the dark workspace. */
+html.dark .content-wrap .account-privacy-banner {
+  background: #17232d !important;
+  border-color: #344550 !important;
+  color: #c3d0d8 !important;
+}
+html.dark .content-wrap .account-privacy-banner .text-slate-600,
+html.dark .content-wrap .account-privacy-banner .text-slate-800 { color: #c3d0d8 !important; }
+html.dark .content-wrap .account-ledger-row:hover { background: #202d37 !important; }
+html.dark .trade-quickstart {
+  background: linear-gradient(120deg,#172a2b,#17232d) !important;
+  border-color: #344d4b !important;
+}
+html.dark .trade-quickstart-heading strong,
+html.dark .trade-quickstart-steps strong { color: #e6edf2 !important; }
+html.dark .trade-quickstart-heading p,
+html.dark .trade-quickstart-steps small { color: #a1b0bc !important; }
+html.dark .trade-quickstart-steps > button {
+  background: #1d2b36 !important;
+  border-color: #344550 !important;
+}
+html.dark .trade-quickstart-steps > button:hover { background: #203a3a !important; }
