@@ -6,6 +6,8 @@
     <img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
     <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql&logoColor=white" alt="PostgreSQL">
     <img src="https://img.shields.io/badge/Market-INR%20%7C%20NSE%20%7C%20BSE-087f72" alt="Indian market">
+    <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718"><img src="https://img.shields.io/badge/SSRN-Preprint%207670718-blue" alt="SSRN: 7670718"></a>
+    <a href="https://orcid.org/0009-0006-3098-6175"><img src="https://img.shields.io/badge/ORCID-0009--0006--3098--6175-A6CE39?logo=orcid&logoColor=white" alt="ORCID: 0009-0006-3098-6175"></a>
     <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
     <a href="#-project-status-and-license"><img src="https://img.shields.io/badge/status-active%20development-blue" alt="Active development"></a>
     <a href="#-contributing"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
@@ -413,9 +415,28 @@ Issues and pull requests are welcome. For a useful contribution:
 3. Update the relevant documentation when behavior or environment settings change.
 4. Run the applicable frontend build and backend checks before opening a pull request.
 
-## 📄 Project status and license
+## 📄 Project status, research manuscript, and license
 
-Quantx is an educational paper-trading application under active development. Some preferences are stored in the browser, simulated trading is not connected to a broker order system, and market-data features depend on external provider access, plan limits, and market hours. The chatbot provides market education and workspace help, not investment advice.
+Quantx is an academic and educational paper-trading workspace developed by **Bhavik Achotani** (*Department of Information Technology, Thadomal Shahani Engineering College, University of Mumbai*).
+
+- **Research Manuscript (SSRN Preprint):** [https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718)
+- **Author ORCID:** [https://orcid.org/0009-0006-3098-6175](https://orcid.org/0009-0006-3098-6175)
+
+### Citation
+
+If you use Quantx's simulation engine or backtesting modules in your research, please cite:
+
+```bibtex
+@article{achotani2026quantx,
+  author    = {Achotani, Bhavik},
+  author+an = {1=orcid:0009-0006-3098-6175},
+  title     = {Quantx: High-Concurrency Transactional State-Locking and Vectorized Backtesting in Low-Latency Financial Simulators},
+  journal   = {SSRN Electronic Journal},
+  year      = {2026},
+  doi       = {10.2139/ssrn.7670718},
+  url       = {https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718}
+}
+```
 
 This project is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for the full terms and copyright notice.
 
