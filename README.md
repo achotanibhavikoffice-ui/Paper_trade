@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql&logoColor=white" alt="PostgreSQL">
     <img src="https://img.shields.io/badge/Market-INR%20%7C%20NSE%20%7C%20BSE-087f72" alt="Indian market">
     <a href="https://huggingface.co/spaces/achotanibhavikoffice-ui/quantx-demo"><img src="https://img.shields.io/badge/Live%20Demo-Hugging%20Face%20Spaces-FFD21E?logo=huggingface&logoColor=black" alt="Live Demo on Hugging Face"></a>
-    <img src="https://img.shields.io/badge/Elsevier%20Q1%20Scopus-Simulation%20Modelling%20Practice%20and%20Theory%20(ID%3A%20DECSUP--D--26--2666)-FF6C00" alt="Under Review at Decision Support Systems (DECSUP (IF: 7.5))">
+    <img src="https://img.shields.io/badge/Elsevier%20Q1%20Scopus-Simulation%20Modelling%20Practice%20and%20Theory%20(ID%3A%20DECSUP--D--26--2666)-FF6C00" alt="Under Review at Decision Support Systems (DECSUP-D-26-04166)">
     <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718"><img src="https://img.shields.io/badge/SSRN-Preprint%207670718-blue" alt="SSRN: 7670718"></a>
     <a href="https://orcid.org/0009-0006-3098-6175"><img src="https://img.shields.io/badge/ORCID-0009--0006--3098--6175-A6CE39?logo=orcid&logoColor=white" alt="ORCID: 0009-0006-3098-6175"></a>
     <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
