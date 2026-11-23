@@ -1,4 +1,4 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[journal,onecolumn,10pt]{IEEEtran}
 \IEEEoverridecommandlockouts
 \usepackage{cite}
 \usepackage{amsmath,amssymb}
@@ -10,10 +10,18 @@
 \usepackage{listings}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
-\usepackage{balance}
 \usepackage[hidelinks]{hyperref}
 
-\newcommand{\thinunit}[2]{#1\,#2}
+\newcommand{\thinunit}[2]{#1\,\text{#2}}
+
+% Elsevier Computer Standards & Interfaces Arabic section and table numbering (1., 1.1, 1.1.1)
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\thetable}{\arabic{table}}
+\makeatletter
+\def\@seccntformat#1{\csname the#1\endcsname.\quad}
+\makeatother
 
 \lstset{basicstyle=\ttfamily\scriptsize,breaklines=true,breakatwhitespace=false,
   columns=fullflexible,frame=single,xleftmargin=0pt,framexleftmargin=0pt,
@@ -25,97 +33,92 @@
 
 \title{Quantx: An NSE Equity Paper-Trading Workspace with Boundary-Enforced Market Data, Depth-Based Local Order Matching, and Transactional SafePoint Recovery}
 
-\author{\IEEEauthorblockN{Bhavik Achotani}
-\IEEEauthorblockA{Department of Information Technology\\
-Thadomal Shahani Engineering College, University of Mumbai\\
-Mumbai, India\\
-achotanibhavikoffice@gmail.com}}
+\author{\IEEEauthorblockN{Bhavik Mahesh Achotani}\\
+\IEEEauthorblockA{Department of Information Technology, Thadomal Shahani Engineering College, University of Mumbai,\\
+P.~G.~Kher Marg, TPS-III, Bandra (West), Mumbai 400050, Maharashtra, India\\
+Email: achotanibhavikoffice@gmail.com \quad|\quad ORCID: 0009-0006-3098-6175}}
 
 \maketitle
 
 \begin{abstract}
-\textbf{Context:} Retail securities trading simulators frequently blur the separation between external market-data streams and internal account state, executing arbitrary quantities at the last traded price, omitting product-specific statutory transaction costs, and applying network packets in arrival order without transactional rollback mechanisms.
-\textbf{Objectives:} We design and empirically verify Quantx, a boundary-enforced paper-trading workspace for National Stock Exchange of India (NSE) equities that guarantees read-only market-data ingestion, depth-based local order matching with Indian statutory charges, and atomic portfolio state recovery.
-\textbf{Methods:} Quantx is organized across four tiers (React client, FastAPI service, in-process decoding/matching engine, and PostgreSQL 16.15/Redis 7.4.11 persistence) enforcing a strict zero-order provider boundary. Inside this boundary, the pipeline decodes big-endian binary frames, normalizes prices to tick size, validates circuit, board-lot, and freeze constraints, suppresses duplicates and out-of-order timestamps, blocks market orders on stale depth, walks five-level bid/ask depth with partial fills and Immediate-or-Cancel handling, computes six-component Indian statutory charges, and provides atomic SafePoint state rollback alongside non-destructive What-If stress testing and a guardrailed learning guide. We evaluated Quantx against a last-price, zero-charge, arrival-order baseline (B0) across $N=50$ scripted orders ($N_f=73$ fills) and $N_{\mathrm{adv}}=50$ injected adversarial faults.
-\textbf{Results:} Quantx achieved zero ledger-reconciliation error ($\text{mean}=\thinunit{0.00}{INR}$, $\text{max}=\thinunit{0.00}{INR}$ vs.\ B0 $\text{mean}=\thinunit{19{,}684.41}{INR}$, $\text{max}=\thinunit{227{,}398.32}{INR}$), zero fill-price deviation ($\thinunit{0.00}{INR/share}$ vs.\ B0 $\thinunit{1.60}{INR/share}$), zero charge deviation ($\thinunit{0.00}{INR/fill}$ vs.\ B0 $\thinunit{33.08}{INR/fill}$), and zero fault leaks across all 50 injected disorder, staleness, idempotency, and rule-violation events, while maintaining sub-millisecond quote ingestion ($\text{p99}=\thinunit{0.06}{ms}$), $\text{p50}=\thinunit{71.02}{ms}$ five-level match-and-commit latency, and $\text{p50}=\thinunit{22.00}{ms}$ SafePoint rollback recovery.
-\textbf{Conclusion:} These results confirm the software-engineering feasibility of boundary-enforced, depth-walking local paper execution and transactional state recovery for NSE equity practice, without claiming live exchange queue fidelity, educational learning outcomes, or production brokerage readiness.
+Financial trading and decision-support software systems must enforce a strict architectural boundary between external, asynchronous market-data interfaces and internal, authoritative transactional state. Unconstrained retail trading workspaces frequently violate this separation by accepting unvalidated network packets in arrival order, executing arbitrary quantities at top-of-book prices, omitting statutory fee schedules, and lacking atomic state rollback interfaces. This paper presents the design, interface specification, and empirical verification of Quantx, a boundary-enforced equity paper-trading workspace for the National Stock Exchange of India (NSE). Organized across a four-tier architecture (React client, FastAPI control service, in-process protocol and matching engine, and PostgreSQL 16.15/Redis 7.4.11 persistence), Quantx enforces a read-only zero-order external provider boundary. Across this interface, the pipeline decodes big-endian binary wire frames, normalizes integer paise to Indian Rupees (INR), filters out-of-order and duplicate event-time packets, blocks market execution on stale depth, enforces an eight-point idempotent admission contract (tick, board-lot, freeze, circuit-band, and buying-power checks), executes five-level depth-walking matching with Immediate-or-Cancel (IOC) handling and six-component Indian statutory charges, and provides atomic SafePoint state recovery. Evaluated across $104{,}969$ real exchange instrument master records ($9{,}939$ NSE cash-equity contracts), $80{,}504$ recorded tick frames, $N=50$ scripted multi-level orders ($N_f=73$ fills), and $N_{\mathrm{adv}}=50$ injected faults, Quantx isolated $100\%$ of feed anomalies and achieved zero ledger-reconciliation error ($\thinunit{0.00}{INR}$ vs.\ baseline $\thinunit{19{,}684.41}{INR}$), $\text{p99}=\thinunit{0.06}{ms}$ frame ingestion, and $\text{p50}=\thinunit{22.00}{ms}$ transactional SafePoint rollback.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Paper Trading, Order Matching, Limit Order Book, Market Depth, Indian Equities, Transaction Charges, Idempotent Submission, Out-of-Order Market Data, SafePoint State Recovery, Financial Education Software.
+API Boundary Enforcement, Software Interface Verification, Transactional State Recovery, Idempotent Order Admission, Binary Protocol Normalization, Financial Software Quality
 \end{IEEEkeywords}
 
 \section{Introduction}
 
-Software that enables a learner to practice securities trading must reconcile two classes of information whose ground truth is owned by distinct parties. The first class is market data: instrument reference masters, top-of-book quotes, and multi-level order-book depth that originate at an exchange or its licensed vendor, arrive as an asynchronous, high-rate stream, and cannot be altered by the client application \cite{harris2003,hasbrouck2007,gould2013}. The second class is account state: orders, partial fills, statutory charges, cash balances, positions, and recovery checkpoints that exist solely because the application records them, and whose internal consistency the application must guarantee through atomic transactional storage \cite{gray1993,kleppmann2017}. A practice environment is trustworthy only when the first class of information is treated strictly as read-only input and the second as an authoritative, auditable ledger.
+Software systems that enable a user to practice securities trading must reconcile two classes of information whose ground truth is owned by distinct parties across an external network interface. The first class is market data: instrument reference masters, top-of-book quotes, and multi-level order-book depth that originate at an exchange or its licensed vendor, arrive as an asynchronous, high-rate binary or REST stream, and cannot be altered by the client application \cite{harris2003,hasbrouck2007,gould2013}. The second class is internal account state: orders, partial fills, statutory charges, cash balances, positions, and recovery checkpoints that exist solely because the application records them, and whose internal consistency the software system must guarantee through strict interface contracts and atomic transactional storage \cite{gray1993,kleppmann2017}. A financial software workspace is trustworthy only when the first class of information is treated strictly as validated, read-only input across a well-defined protocol boundary and the second as an authoritative, auditable relational ledger.
 
-Unconstrained retail trading simulators typically blur this separation and exhibit three recurring failure modes:
+Unconstrained retail trading workspaces typically blur this architectural separation and exhibit three recurring software quality and interface failure modes:
 \begin{itemize}
-  \item \textbf{Fill-Model Fragility:} Filling an order of arbitrary size at the last traded price ignores finite displayed liquidity at each price level and the bid--ask spread, even though empirical execution prices depend directly on how far an order walks the limit order book and on order quantity \cite{almgren2001,kyle1985,glosten1985,cont2010}.
-  \item \textbf{Charge and Product-Rule Blindness:} Transaction costs and portfolio turnover are primary determinants of individual investors' net returns \cite{barber2000,barber2002,barber2009}. In Indian cash equities, statutory charges—Securities Transaction Tax (STT), exchange transaction fees, SEBI turnover fees, stamp duty, and Goods and Services Tax (GST)—differ sharply by product type (Cash and Carry delivery, CNC, versus Margin Intraday Square-off, MIS) and by order side. A simulator that omits per-fill statutory charges or exchange lot/circuit rules reports systematically inflated profit and loss.
-  \item \textbf{Feed-Disorder and State-Corruption Fragility:} Real network feeds deliver duplicated, delayed, and out-of-order frames in which processing-time arrival order diverges from exchange event-time order \cite{akidau2015,lamport1978,hasbrouck2013}. A simulator that applies packets in arrival order allows a delayed quote to overwrite a newer book state, and a simulator without transactional state snapshots or non-advisory guardrails leaves learners unable to recover cleanly from accidental over-leveraging or simulated flash-crash exercises.
+  \item \textbf{Execution Interface and Depth-Book Blindness:} Executing an order of arbitrary size at the last traded price ignores finite displayed liquidity at each price level and the bid--ask spread, even though real execution prices depend directly on how far an order walks the limit order book and on order quantity \cite{almgren2001,kyle1985,glosten1985,cont2010}.
+  \item \textbf{Statutory Schedule and Contract-Rule Blindness:} Transaction costs and portfolio turnover are primary determinants of individual investors' net returns \cite{barber2000,barber2002,barber2009}. In Indian cash equities on the National Stock Exchange of India (NSE), statutory charges—Securities Transaction Tax (STT), exchange transaction fees, Securities and Exchange Board of India (SEBI) turnover fees, stamp duty, and Goods and Services Tax (GST)—differ sharply by product type (Cash and Carry delivery, CNC, versus Margin Intraday Square-off, MIS) and by order side. A software workspace that omits per-fill statutory charge schedules or exchange board-lot, freeze-quantity, and circuit-band contract specifications reports systematically drifted account balances.
+  \item \textbf{Wire-Protocol Disorder and State-Corruption Fragility:} Real network feeds deliver duplicated, delayed, malformed, and out-of-order frames in which processing-time arrival order diverges from exchange event-time order \cite{akidau2015,lamport1978,hasbrouck2013}. A system that applies packets in arrival order allows a delayed quote to overwrite a newer book state, and a system without transactional state snapshots or non-advisory interface guardrails leaves users unable to recover cleanly from corrupted or over-leveraged states.
 \end{itemize}
 
-This study evaluates an integrated, boundary-enforced workspace—\textbf{Quantx}—rather than any single mechanism in isolation. The workflow combines server-side-only provider credentials; an architectural provider boundary that excludes order-placement endpoints; big-endian binary frame decoding with paise-to-rupee normalization; event-time ordering and duplicate suppression; a configurable stale-depth guard for market orders; tick rounding and circuit, board-lot, freeze, product, and buying-power validation at admission; conservative cash reservation; idempotent order submission; five-level depth-walking matching with partial fills and Immediate-or-Cancel (IOC) remainder cancellation; product-aware per-fill statutory charges; single-transaction persistence of orders, trades, charge breakdowns, cash-ledger entries, and positions; an immutable order-event audit trail; account-level Market Stress Mode; a transactional SafePoint Recovery Shield with autonomous fault rollback; a multi-modal What-If scenario laboratory; and a dual-mode, SEBI-compliant non-advisory learning guide.
+This study specifies, implements, and empirically verifies an integrated, boundary-enforced software system—\textbf{Quantx} \cite{quantx_software}—focusing on software interface standardization, wire-protocol normalization, idempotent REST contract validation, and ACID transactional state recovery. The workflow combines server-side-only provider credentials; an architectural provider boundary that excludes order-placement endpoints; big-endian binary frame decoding with paise-to-rupee unit normalization; event-time ordering and duplicate suppression; a configurable stale-depth guard for market orders; tick rounding and circuit, board-lot, freeze, product, and buying-power validation at admission; conservative cash reservation; idempotent order submission; five-level depth-walking local matching with partial fills and Immediate-or-Cancel (IOC) remainder cancellation; product-aware per-fill statutory charges; single-transaction persistence of orders, trades, charge breakdowns, cash-ledger entries, and positions; an immutable order-event audit trail; account-level Market Stress Mode; a transactional SafePoint Recovery Shield with autonomous fault rollback; a multi-modal What-If scenario laboratory; and a dual-mode, SEBI-compliant non-advisory learning guide.
 
 \subsection{Problem Statement}
-Existing literature treats these concerns in separate silos: market-microstructure models characterize limit order book dynamics \cite{gould2013,cont2010}, empirical finance studies quantify retail transaction drag \cite{barber2009,sebi2023}, and distributed-systems research formalizes out-of-order stream processing, idempotency, and ACID transactions \cite{akidau2015,helland2012,gray1993}. Applied piecemeal, each leaves critical vulnerabilities at the application boundary. A depth-walking fill model without an integrated statutory charge engine produces drifted cash balances; a charge engine without a stale-depth gate bills executions against frozen market snapshots; and an accounting ledger without an enforced provider boundary risks leaking practice orders to a live brokerage endpoint or leaving learner portfolios wedged after stress experiments.
+Existing literature treats these concerns in separate silos: market-microstructure models characterize limit order book dynamics \cite{gould2013,cont2010}, empirical finance studies quantify retail transaction drag \cite{barber2009,sebi2023}, and distributed-systems research formalizes out-of-order stream processing, idempotency, and ACID transactions \cite{akidau2015,helland2012,gray1993}. Applied piecemeal, each leaves critical vulnerabilities at the software interface boundary. A depth-walking fill model without an integrated statutory charge schedule produces drifted cash balances; a charge calculator without a stale-depth gate bills executions against frozen market snapshots; and an accounting ledger without an enforced provider boundary risks leaking practice orders to a live brokerage endpoint or leaving user portfolios wedged after stress experiments.
 
-The research and systems-engineering problem is to design and verify a unified execution architecture for NSE equity practice in which (i) upstream market data is strictly read-only input across a zero-order provider boundary, (ii) every order, partial fill, statutory charge component, cash movement, position update, and state checkpoint is computed and persisted atomically inside the application, and (iii) the ledger remains exact to the paisa under duplicate, out-of-order, bursty, and stale market updates, while explicitly delineating which properties are empirically measured and which remain outside the scope of simulation.
+The software-engineering and interface-standardization problem is to design and verify a unified execution architecture for NSE equity practice in which (i) upstream market data is strictly read-only input across a zero-order provider boundary validated against real exchange catalog schemas, (ii) every order, partial fill, statutory charge component, cash movement, position update, and state checkpoint is computed and persisted atomically inside the application, and (iii) the ledger remains exact to the paisa under duplicate, out-of-order, anomalous, and stale market updates.
 
-\subsection{Project Objectives}
+\subsection{System Engineering Objectives}
 \begin{itemize}
   \item \textbf{Implement} a local paper-trading execution engine supporting \texttt{MARKET}, \texttt{LIMIT}, Stop-Loss Limit (\texttt{SL}), and Stop-Loss Market (\texttt{SL-M}) orders with five-level partial fills, modification, cancellation, and \texttt{DAY}/\texttt{IOC} validity.
-  \item \textbf{Enforce} an authenticated market-data plane behind a strict provider boundary that permits authentication, instrument-master synchronization, and quote streaming only.
+  \item \textbf{Enforce} an authenticated market-data plane behind a strict provider boundary that permits authentication, instrument-master catalog synchronization, and binary quote streaming only.
   \item \textbf{Construct} an ACID transactional accounting plane that persists per-level fills, six-component Indian statutory charges, double-tagged cash-ledger entries, signed positions, and atomic SafePoint state snapshots.
   \item \textbf{Develop} deterministic feed-disorder filtering, stale-depth market-order gating, non-destructive multi-modal What-If stress analysis, and guardrailed educational assistance.
-  \item \textbf{Evaluate} the integrated system against a naive baseline (B0) across Typical, Boundary, and Adversarial profiles on a live PostgreSQL and Redis deployment, reporting full percentile distributions alongside exact reconciliation audits.
+  \item \textbf{Verify} the integrated system across $104{,}969$ real exchange instrument master records, $80{,}504$ recorded market tick packets, and controlled Typical, Boundary, and Adversarial order/fault profiles on a live PostgreSQL and Redis deployment.
 \end{itemize}
 
 \subsection{Contributions}
 \begin{enumerate}
-  \item A four-tier system architecture enforcing a hard separation between the read-only market-data plane and the transactional accounting and resilience plane (Sections~III and~IV).
-  \item A formal mathematical specification of five-level depth-walking order matching, conservative buying-power reservation, product-aware Indian statutory charges, signed position accounting, SafePoint state diffing and rollback, and multi-modal What-If shock projections, with every variable and unit explicitly defined (Section~V).
-  \item A four-phase execution workflow, module configuration registry, validated request contract, and dual-mode guardrailed support architecture (Section~VI).
-  \item A reproducible empirical evaluation across $N=50$ scripted orders ($N_f=73$ fills) and $N_{\mathrm{adv}}=50$ adversarial fault injections comparing Quantx against baseline B0, paired with candid validity boundaries and four pre-registered future evaluation protocols (Sections~VII--IX).
+  \item A four-tier software architecture enforcing a hard interface separation between the read-only market-data plane and the transactional accounting and resilience plane (Sections~3 and~4).
+  \item A formal mathematical and interface specification of five-level depth-walking order matching, conservative buying-power reservation, product-aware Indian statutory charges, signed position accounting, SafePoint state diffing and rollback, and multi-modal What-If shock projections, with every variable and unit explicitly defined (Section~5).
+  \item A four-phase execution workflow, module configuration registry, validated REST/WebSocket request contract, and dual-mode guardrailed support interface (Section~6).
+  \item A two-part reproducible empirical verification combining (i) a real-data boundary conformance audit across $104{,}969$ exchange instrument master records ($9{,}939$ NSE cash-market contracts) and $80{,}504$ recorded market tick frames \cite{quantx_dataset}, and (ii) a controlled transactional and fault-injection audit across $N=50$ scripted multi-level orders ($N_f=73$ fills) and $N_{\mathrm{adv}}=50$ adversarial faults comparing Quantx against baseline B0, paired with four pre-registered extension protocols (Sections~7--9).
 \end{enumerate}
 
-The remainder of this paper is structured as follows. Section~II reviews related literature and formulates three falsifiable hypotheses. Section~III presents the four-tier architecture. Sections~IV and~V detail the market-data plane and the matching, charging, recovery, and scenario mechanisms. Section~VI documents runtime configuration, structured validation, and the guardrailed assistant. Section~VII reports the experimental setup and empirical results. Section~VIII discusses architectural limitations, code--documentation discrepancies, and ethical boundaries, and Section~IX concludes with reproducible future protocols.
+The remainder of this paper is structured as follows. Section~2 reviews related literature and formulates three falsifiable hypotheses. Section~3 presents the four-tier software architecture. Sections~4 and~5 detail the boundary-enforced market-data plane and the matching, charging, recovery, and scenario mechanisms. Section~6 documents runtime configuration, structured interface validation, and the guardrailed assistant. Section~7 reports the empirical verification setup and results. Section~8 discusses architectural boundaries, code--documentation audits, and regulatory guardrails, and Section~9 concludes with reproducible evaluation protocols.
 
 \section{Related Work}
 
-\subsection{Market Microstructure and Limit Order Book Execution}
-Theoretical and empirical market-microstructure research establishes why execution prices depend on displayed order-book liquidity rather than the most recent trade print. Comprehensive surveys of limit order books characterize spread dynamics, depth profiles, and queue priority \cite{gould2013}, while stochastic queueing models demonstrate how top-of-book and multi-level depth govern short-horizon fill probabilities \cite{cont2010}. Optimal execution frameworks link order size and execution horizon to temporary and permanent market impact \cite{almgren2001}, equilibrium models connect adverse selection and order flow to bid--ask spreads \cite{kyle1985,glosten1985}, and empirical studies document how markets digest multi-level liquidity consumption \cite{bouchaud2009,hasbrouck2007,harris2003}. While these works formalize exchange matching and price formation, they do not specify an application-level software architecture that reproduces multi-level depth walking and partial-fill accounting inside an isolated learner workspace while guaranteeing that external market feeds remain strictly read-only.
+\subsection{Market Microstructure and Limit Order Book Execution Interfaces}
+Theoretical and empirical market-microstructure research establishes why execution prices depend on displayed order-book liquidity rather than the most recent trade print. Comprehensive surveys of limit order books characterize spread dynamics, depth profiles, and queue priority \cite{gould2013}, while stochastic queueing models demonstrate how top-of-book and multi-level depth govern short-horizon fill behavior \cite{cont2010}. Optimal execution frameworks link order size and execution horizon to temporary and permanent market impact \cite{almgren2001}, equilibrium models connect adverse selection and order flow to bid--ask spreads \cite{kyle1985,glosten1985}, and empirical studies document how markets digest multi-level liquidity consumption \cite{bouchaud2009,hasbrouck2007,harris2003}. While these works formalize exchange matching and price formation, they do not specify an application-level software interface architecture that reproduces multi-level depth walking and partial-fill accounting inside an isolated workspace while guaranteeing that external market feeds remain strictly read-only.
 
-\subsection{Transaction Costs and Retail Investor Performance}
-Empirical studies of individual brokerage accounts consistently show that transaction costs and excessive turnover significantly erode net equity returns \cite{barber2000,barber2002}, producing substantial aggregate wealth transfers from active retail traders \cite{barber2009}. In the Indian market context, a landmark study by the Department of Economic and Policy Analysis (DEPA) of the Securities and Exchange Board of India (SEBI) documented that 89\% of individual traders in the equity futures and options (F\&O) segment incurred net losses, with transaction costs consuming a major share of gross trading turnover \cite{sebi2023}. Although SEBI's empirical report focused on derivatives rather than the cash-equity segment studied here, its findings underscore the pedagogical necessity of modeling product-specific brokerage, STT, stamp duty, exchange turnover fees, SEBI regulatory fees, and GST on every simulated fill rather than reporting frictionless gross returns.
+\subsection{Transaction Cost Schedules and Regulatory Fee Standards}
+Empirical studies of individual brokerage accounts consistently show that transaction costs and excessive turnover significantly erode net equity returns \cite{barber2000,barber2002}, producing substantial aggregate wealth transfers from active retail traders \cite{barber2009}. In the Indian market context, a study by the Department of Economic and Policy Analysis (DEPA) of the Securities and Exchange Board of India (SEBI) documented that 89\% of individual traders in the equity futures and options (F\&O) segment incurred net losses, with statutory and brokerage transaction costs consuming a major share of gross trading turnover \cite{sebi2023}. These findings underscore the software-quality necessity of encoding exact, product-specific brokerage, STT, stamp duty, exchange turnover fees, SEBI regulatory fees, and GST schedules on every fill rather than reporting frictionless gross returns.
 
-\subsection{Experiential Learning, Simulation Fidelity, and Overfitting Risks}
-Experiential learning theory emphasizes concrete action and reflective observation in risk-free environments prior to live performance \cite{kolb1984}. In quantitative finance, however, simulated performance carries severe epistemic hazards: Bailey et al.\ \cite{bailey2014} prove that repeated strategy testing on historical or synthetic paths easily generates false discoveries through backtest overfitting. Computational reproducibility standards therefore require that simulation claims be accompanied by exact parameter disclosures, deterministic replay artifacts, and explicit scope boundaries \cite{peng2011,wohlin2012}. Because no controlled human-subject study was conducted in this work, we make zero claims regarding educational efficacy or live trading skill transfer, focusing strictly on systems-level accounting and execution conformance.
+\subsection{Software Reproducibility, Specification Auditing, and Overfitting Risks}
+Experiential learning theory emphasizes concrete action and reflective observation in risk-free environments prior to live operations \cite{kolb1984}. In financial software, however, unverified execution engines carry severe epistemic hazards: Bailey et al.\ \cite{bailey2014} demonstrate that repeated strategy evaluation on uncalibrated paths easily generates false discoveries. Software engineering and computational reproducibility standards therefore require that system claims be accompanied by exact parameter disclosures, deterministic replay artifacts, independent specification verification, and explicit validity boundaries \cite{peng2011,wohlin2012}. Because no human-subject intervention was conducted in this study, we make zero claims regarding educational efficacy or live trading skill transfer, focusing strictly on software interface conformance, protocol filtering, and transactional ledger correctness.
 
-\subsection{Event-Time Disorder, Idempotency, and Transactional Recovery}
-Distributed stream-processing literature distinguishes event time (when an exchange generates a quote) from processing time (when a downstream server receives it), demonstrating that network jitter and reconnection bursts inevitably cause out-of-order and duplicate arrivals \cite{akidau2015,lamport1978,hasbrouck2013}. Simultaneously, enterprise data-intensive systems rely on client-supplied idempotency keys to render network retries safe \cite{helland2012} and on ACID relational transactions with snapshot recovery to prevent partial state corruption \cite{gray1993,kleppmann2017,fowler2002}. Existing financial simulators rarely integrate event-time quote filtering, stale-depth market-order blocking, idempotent order admission, and user-invocable portfolio SafePoint rollbacks into a single auditable pipeline.
+\subsection{Event-Time Stream Disorder, Idempotent APIs, and Transactional Recovery}
+Distributed stream-processing literature distinguishes event time (when an upstream source generates a frame) from processing time (when a downstream server receives it), demonstrating that network jitter and reconnection bursts inevitably cause out-of-order and duplicate arrivals \cite{akidau2015,lamport1978,hasbrouck2013}. Simultaneously, enterprise data-intensive systems rely on client-supplied idempotency keys to render HTTP network retries safe \cite{helland2012} and on ACID relational transactions with snapshot recovery to prevent partial state corruption \cite{gray1993,kleppmann2017,fowler2002}. Existing financial workspaces rarely integrate binary wire-protocol decoding, event-time quote filtering, stale-depth market-order blocking, idempotent REST admission, and user-invocable portfolio SafePoint rollbacks into a single auditable software pipeline.
 
-\textbf{Research Gap and Hypotheses.} To our knowledge, no prior peer-reviewed system combines, in one empirically audited workflow, (i) a zero-order provider boundary for NSE equities, (ii) five-level depth-walking partial fills with six-component Indian statutory charges, (iii) event-time disorder and staleness gates feeding an ACID ledger, and (iv) atomic SafePoint portfolio recovery. We formulate this gap as three falsifiable hypotheses tested in Section~VII against a defined baseline \textbf{B0} (which executes full quantities at the last traded price, applies zero charges, processes packets in arrival order without staleness checks, and omits idempotency and admission rule gates):
+\textbf{Research Gap and Hypotheses.} To our knowledge, no prior peer-reviewed software architecture combines, in one empirically audited system, (i) a zero-order external provider boundary validated against real NSE instrument master schemas, (ii) five-level depth-walking partial fills with six-component Indian statutory charges, (iii) event-time disorder, anomaly, and staleness gates feeding an ACID relational ledger, and (iv) atomic SafePoint portfolio recovery. We formulate this gap as three falsifiable hypotheses tested in Section~7 against a defined baseline \textbf{B0} (which executes full quantities at the last traded price, applies zero charges, processes packets in arrival order without staleness or zero-price checks, and omits idempotency and admission rule gates):
 \begin{itemize}
-  \item \textbf{H1 (Ledger and Fill Conformance):} Across Typical, Boundary, and Adversarial order profiles, Quantx yields strictly smaller ledger-reconciliation error ($\varepsilon_M \le \thinunit{0.01}{INR}$), fill-price deviation ($\delta_p$), and charge deviation than B0, with zero fills violating limit-price bounds.
-  \item \textbf{H2 (Disorder and Staleness Resilience):} Under adversarial streams containing out-of-order exchange timestamps and stale quotes ($A_s(t) > \theta$), Quantx records zero older-packet cache overwrites and zero market-order executions on stale depth, whereas B0 records at least one failure in each category.
-  \item \textbf{H3 (Idempotency and Rule-Gate Invariance):} Under repeated submissions of an identical \texttt{idempotency\_key} and injections of off-tick, out-of-circuit, lot-violating, freeze-exceeding, or underfunded requests, Quantx produces zero duplicate orders, fills, or ledger entries and accepts zero invalid orders.
+  \item \textbf{H1 (Ledger and Fill Specification Conformance):} Across Typical, Boundary, and Adversarial order profiles, Quantx yields strictly smaller ledger-reconciliation error ($\varepsilon_M \le \thinunit{0.01}{INR}$), fill-price deviation ($\delta_p$), and charge deviation than B0, with zero fills violating limit-price bounds.
+  \item \textbf{H2 (Protocol Disorder, Anomaly, and Staleness Resilience):} Under real recorded tick streams and adversarial injections containing zero-price anomalies, out-of-order exchange timestamps ($\tau_k < \tau^*_s$), and stale quotes ($A_s(t) > \theta$), Quantx records zero corrupted or older-packet cache overwrites and zero market-order executions on stale or depth-less frames, whereas B0 records failures in each category.
+  \item \textbf{H3 (API Idempotency and Contract-Gate Invariance):} Under repeated HTTP submissions of an identical \texttt{idempotency\_key} and injections of off-tick, out-of-circuit, lot-violating, freeze-exceeding, or underfunded requests against real NSE contract rules, Quantx produces zero duplicate orders, fills, or ledger entries and accepts zero invalid orders.
 \end{itemize}
 
-\section{Proposed System and Architecture}
+\section{Proposed System and Four-Tier Software Architecture}
 
-Quantx is structured as a four-tier web and data-processing architecture deployed via Docker Compose. External market-data, news, and optional language-model providers reside strictly outside the application boundary and interact only through read-only adapters in the application and market-data tiers.
+Quantx is structured as a four-tier web and data-processing architecture deployed via Docker Compose \cite{quantx_software}. External market-data, news, and optional language-model providers reside strictly outside the application boundary and interact only through read-only adapters in the application and market-data tiers.
 \begin{itemize}
   \item \textbf{Tier 1 --- Presentation Tier (React 18, TypeScript, Vite, Tailwind CSS):} Renders the multi-pane trading workspace, interactive order ticket, five-level market-depth ladder, data-source provenance badges (\texttt{021\_live}, \texttt{indianapi}, \texttt{demo}), What-If scenario laboratory, SafePoint Recovery Shield drawer, and Quantx Guide panel. It maintains an authenticated WebSocket connection (\texttt{/api/market/ws}) with exponential-backoff reconnection.
-  \item \textbf{Tier 2 --- Application Tier (FastAPI 0.156, Pydantic 2.14, SQLAlchemy 2.1):} Exposes RESTful resource controllers \cite{fielding2000} and the quote WebSocket endpoint \cite{rfc6455}, enforces Pydantic request schemas, hashes user passwords using memory-hard Argon2id \cite{biryukov2016}, and issues HMAC-SHA256 signed JWT session tokens \cite{rfc7519} inside \texttt{HttpOnly}, \texttt{SameSite=Lax} cookies.
-  \item \textbf{Tier 3 --- Market-Data, Matching, and Resilience Tier (In-Process Domain Services):} Authenticates server-side to the upstream market feed, decodes binary frames (TC~1 and TC~3), enforces event-time ordering and duplicate suppression, executes the five-level depth-walking paper matcher and statutory fee calculator (\texttt{PaperTradingEngine}), runs the elected 15:20~IST intraday MIS square-off worker, executes multi-modal What-If stress simulations (\texttt{ScenarioEngine}), and manages SafePoint snapshots and autonomous fault rollbacks (\texttt{RecoveryEngine}).
-  \item \textbf{Tier 4 --- Persistence Tier (PostgreSQL 16.15, Redis 7.4.11):} PostgreSQL serves as the single authoritative ACID system of record for users, accounts, instruments, orders, trades, trade charges, order events, positions, cash-ledger entries, scenario runs, and portfolio SafePoints. Redis maintains low-latency latest-quote hashes (\texttt{quantx:quote:<symbol>}) and a capped append-only stream (\texttt{quantx:market:quotes}, \texttt{MAXLEN}~$10{,}000$).
+  \item \textbf{Tier 2 --- Application Control Tier (FastAPI 0.156, Pydantic 2.14, SQLAlchemy 2.1):} Exposes RESTful resource controllers \cite{fielding2000} and the quote WebSocket endpoint \cite{rfc6455}, enforces Pydantic request schemas, hashes user passwords using memory-hard Argon2id \cite{biryukov2016}, and issues HMAC-SHA256 signed JSON Web Token (JWT) session tokens \cite{rfc7519} inside \texttt{HttpOnly}, \texttt{SameSite=Lax} cookies.
+  \item \textbf{Tier 3 --- Protocol Decoding, Matching, and Resilience Tier (In-Process Domain Services):} Authenticates server-side to the upstream market feed, synchronizes the exchange instrument master CSV, decodes binary frames (Transaction Code~1 and Transaction Code~3), enforces event-time ordering and duplicate suppression, executes the five-level depth-walking paper matcher and statutory fee calculator (\texttt{PaperTradingEngine}), runs the elected 15:20~IST intraday MIS square-off worker, executes multi-modal What-If stress projections (\texttt{ScenarioEngine}), and manages SafePoint snapshots and autonomous fault rollbacks (\texttt{RecoveryEngine}).
+  \item \textbf{Tier 4 --- Authoritative Persistence Tier (PostgreSQL 16.15, Redis 7.4.11):} PostgreSQL serves as the single authoritative ACID system of record for users, accounts, instruments, orders, trades, trade charges, order events, positions, cash-ledger entries, scenario runs, and portfolio SafePoints. Redis maintains low-latency latest-quote hashes (\texttt{quantx:quote:<symbol>}) and a capped append-only stream (\texttt{quantx:market:quotes}, \texttt{MAXLEN}~$10{,}000$).
 \end{itemize}
 
-Fig.~\ref{fig:arch} illustrates the four architectural tiers, the red dashed zero-order provider boundary, and the separation between the Market-Data Plane and the Accounting \& Resilience Plane. Password recovery follows OWASP guidelines \cite{owaspforgot}: single-use reset tokens are persisted exclusively as SHA-256 digests, expire after \thinunit{30}{min}, and are rate-limited to one request per minute per account.
+Fig.~\ref{fig:arch} illustrates the four architectural tiers, the red dashed zero-order provider boundary, and the separation between the Market-Data Plane and the Accounting \& Resilience Plane. Password recovery follows Open Worldwide Application Security Project (OWASP) guidelines \cite{owaspforgot}: single-use reset tokens are persisted exclusively as SHA-256 digests, expire after \thinunit{30}{min}, and are rate-limited to one request per minute per account.
 
-\begin{figure*}[!t]
+\begin{figure}[!t]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
@@ -199,9 +202,9 @@ Fig.~\ref{fig:arch} illustrates the four architectural tiers, the red dashed zer
 \end{tikzpicture}}
 \caption{Quantx four-tier system architecture illustrating the strict read-only provider boundary above the application, the presentation and FastAPI control tiers, the in-process market-data decoding, depth-matching, SafePoint recovery, and What-If resilience tier, and the authoritative PostgreSQL/Redis persistence tier.}
 \label{fig:arch}
-\end{figure*}
+\end{figure}
 
-\subsection{Separation of Responsibilities}
+\subsection{Interface Separation of Responsibilities}
 The architecture enforces an invariant separation between the \emph{market-data plane} and the \emph{accounting and resilience plane}. The market-data plane (\texttt{MarketDataService}, \texttt{ProviderClient}) may authenticate to an external provider, synchronize the NSE instrument catalog, and ingest binary quote and depth frames; it has no access to order-placement endpoints, holds no user account state, and never writes to the financial ledger. Conversely, the accounting and resilience plane (\texttt{PaperTradingEngine}, \texttt{RecoveryEngine}, \texttt{ScenarioEngine}) alone creates or mutates orders, trades, statutory charge records, cash-ledger entries, positions, and SafePoint snapshots. It never treats a depth-less REST snapshot (\texttt{indianapi}) as executable market depth, never coerces a missing quote to a zero price, and tags every quote with an explicit provenance label (\texttt{021\_live}, \texttt{indianapi}, or \texttt{demo}) so the user interface always reflects data origin.
 
 \section{Boundary-Enforced Market-Data Plane}
@@ -210,7 +213,7 @@ The market-data plane transforms upstream frames—which arrive in big-endian bi
 
 \begin{figure}[!t]
 \centering
-\resizebox{\columnwidth}{!}{%
+\resizebox{0.62\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\footnotesize\sffamily,
   stepbox/.style={draw=blue!70!black, fill=blue!8, rounded corners=2pt, minimum width=4.5cm, minimum height=0.62cm, align=center},
@@ -298,8 +301,7 @@ When \texttt{create\_order} receives a request, it executes a deterministic eigh
 \begin{equation}
 \begin{aligned}
 R_o &= q_o\,p^{\mathrm{est}}_o\,(1+\rho)+\beta_o,\\
-\rho &= \Bigl(\max\{t_{\mathrm{CNC}}+u_{\mathrm{CNC}},\,t_{\mathrm{MIS,S}}+u_{\mathrm{MIS}}\}\\
-&\qquad +\epsilon_{\mathrm{X}}+\epsilon_{\mathrm{S}}+\phi\Bigr)(1+g),
+\rho &= \Bigl(\max\{t_{\mathrm{CNC}}+u_{\mathrm{CNC}},\,t_{\mathrm{MIS,S}}+u_{\mathrm{MIS}}\} + \epsilon_{\mathrm{X}}+\epsilon_{\mathrm{S}}+\phi\Bigr)(1+g),
 \end{aligned}
 \label{eq:reserve}
 \end{equation}
@@ -322,8 +324,7 @@ where $f\in\mathbb{N}_0$ is measured in shares and $\bar{p}$ in INR/share (quant
 For each level fill $(x_i, \pi_i)$ with gross trade value $V = x_i\,\pi_i$ (INR), the fee routine (\texttt{\_calculate\_fees}) computes a six-component Indian statutory charge breakdown:
 \begin{equation}
 \begin{aligned}
-C &= b\,\beta + \bigl(\epsilon_{\mathrm{X}} + \epsilon_{\mathrm{S}} + \phi + t_{k,d} + u_{k,d}\bigr)V\\
-&\quad + g\Bigl(b\,\beta + (\epsilon_{\mathrm{X}} + \epsilon_{\mathrm{S}} + \phi)V\Bigr),\qquad V = x_i\,\pi_i,
+C &= b\,\beta + \bigl(\epsilon_{\mathrm{X}} + \epsilon_{\mathrm{S}} + \phi + t_{k,d} + u_{k,d}\bigr)V + g\Bigl(b\,\beta + (\epsilon_{\mathrm{X}} + \epsilon_{\mathrm{S}} + \phi)V\Bigr),\qquad V = x_i\,\pi_i,
 \end{aligned}
 \label{eq:charge}
 \end{equation}
@@ -350,12 +351,12 @@ P_{\mathrm{real}} = \mathrm{sgn}(Q)\,(p_{\mathrm{eff}}-A)\,c,
 where $P_{\mathrm{real}}$ is the realized profit and loss (INR) and $\mathrm{sgn}(Q) \in \{+1,-1\}$ is the sign of the prior position. If the fill flattens the position ($Q'=0$), $A'$ resets to $0$; if the fill flips the sign of $Q$ ($x_i > |Q|$), the residual $x_i - |Q|$ opens a new position in direction $d_{\pm}$ at average basis $A' = p_{\mathrm{eff}}$.
 
 \subsection{Market Stress Mode, Multi-Modal What-If Lab, and Transactional SafePoint Recovery}
-\textbf{1) Account-Level Market Stress Mode:} When a learner enables Stress Mode on their account, simulated execution depth is degraded exclusively for that account prior to Equation~\eqref{eq:alloc}:
+\textbf{1) Account-Level Market Stress Mode:} When a user enables Stress Mode on their account, simulated execution depth is degraded exclusively for that account prior to Equation~\eqref{eq:alloc}:
 \begin{equation}
 \begin{aligned}
-\pi'_i &= \pi_i + s\,p_{\mathrm{last}} \ \text{(asks)},\\
-\pi'_i &= \max\{0.01,\ \pi_i - s\,p_{\mathrm{last}}\} \ \text{(bids)},\\
-Q'_i &= \lfloor \lambda\,Q_i \rfloor,
+\pi'_i &= \pi_i + s\,p_{\mathrm{last}} \ \text{(asks)},\qquad
+\pi'_i = \max\{0.01,\ \pi_i - s\,p_{\mathrm{last}}\} \ \text{(bids)},\qquad
+Q'_i = \lfloor \lambda\,Q_i \rfloor,
 \end{aligned}
 \label{eq:stress}
 \end{equation}
@@ -364,14 +365,14 @@ where $\pi'_i$ (INR) and $Q'_i$ (shares) are the stressed level price and quanti
 \textbf{2) Multi-Modal What-If Scenario Laboratory:} Quantx provides two complementary, strictly read-only scenario engines that project hypothetical shocks without mutating ledger state. First, the portfolio holding shock engine (\texttt{/api/scenarios}) evaluates symbol-specific percentage shocks $\delta_j$ (\%) across each held position $j$ with quantity $q_j$ (shares) and current price $p_j$ (INR):
 \begin{equation}
 \begin{aligned}
-V^{\mathrm{proj}}_j &= q_j\,\max\Bigl\{0,\ p_j\Bigl(1+\frac{\delta_j}{100}\Bigr)\Bigr\},\\
-\Pi_j &= V^{\mathrm{proj}}_j - q_j\,p_j,
+V^{\mathrm{proj}}_j &= q_j\,\max\Bigl\{0,\ p_j\Bigl(1+\frac{\delta_j}{100}\Bigr)\Bigr\},\qquad
+\Pi_j = V^{\mathrm{proj}}_j - q_j\,p_j,
 \end{aligned}
 \label{eq:whatif}
 \end{equation}
 where $V^{\mathrm{proj}}_j$ is the projected holding valuation (INR) and $\Pi_j$ is the projected holding P\&L delta (INR). Second, the multi-modal What-If laboratory (\texttt{ScenarioEngine}, \texttt{/api/what-if/*}) supports three interactive analytical modes: (i) \emph{Single-Stock Scenario Grid}, which evaluates a $3\times 3$ matrix of price moves $\Delta p \in \{-5\%, 0\%, +5\%\}$ and volatility shifts $\Delta \sigma \in \{-10\%, 0\%, +10\%\}$ around user-specified moves; (ii) \emph{Portfolio Stress Test}, which combines a global market shift $\delta_{\mathrm{mkt}}$ (\%), a sector shift $\delta_{\mathrm{sec}}$ (\%), and stock overrides; and (iii) \emph{Capital Allocation Concentration Analysis}, which computes portfolio Herfindahl--Hirschman concentration and top-holding weight $w_{\max} = \max_j (V_j / \sum_k V_k)$, flagging high concentration risk when $w_{\max} > 0.35$.
 
-\textbf{3) Transactional SafePoint Recovery Shield:} To allow learners to experiment with aggressive order structures or stress scenarios and recover cleanly, \texttt{RecoveryEngine} (\texttt{/api/recovery/*}) implements atomic portfolio checkpointing and autonomous fault recovery. Creating a SafePoint $S_m$ captures a serialized JSON state vector:
+\textbf{3) Transactional SafePoint Recovery Shield:} To allow users to experiment with aggressive order structures or stress scenarios and recover cleanly, \texttt{RecoveryEngine} (\texttt{/api/recovery/*}) implements atomic portfolio checkpointing and autonomous fault recovery. Creating a SafePoint $S_m$ captures a serialized JSON state vector:
 \begin{equation}
 S_m = \bigl(M^{(m)}_{\mathrm{cash}},\ M^{(m)}_{\mathrm{res}},\ \mathcal{P}^{(m)},\ \mathcal{O}^{(m)}_{\mathrm{open}}\bigr),
 \label{eq:safepoint}
@@ -385,7 +386,7 @@ where $\Delta M_{\mathrm{restore}}$ (INR) is the cash balance adjustment and $\D
 
 \begin{figure}[!t]
 \centering
-\resizebox{\columnwidth}{!}{%
+\resizebox{0.68\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\footnotesize\sffamily,
   spbox/.style={draw=teal!80!black, fill=teal!10, rounded corners=2pt, minimum width=3.9cm, minimum height=0.65cm, align=center},
@@ -425,11 +426,11 @@ where $\Delta M_{\mathrm{restore}}$ (INR) is the cash balance adjustment and $\D
 \label{fig:resilience}
 \end{figure}
 
-\section{Runtime Configuration, Structured Validation, and Guardrailed Assistance}
+\section{Runtime Configuration, Structured Interface Validation, and Guardrailed Assistance}
 
 Every paper order traverses a deterministic four-phase execution pipeline, illustrated in Fig.~\ref{fig:phases}. In \textbf{Phase~1 (Ingestion \& Normalization)}, the backend authenticates the HTTP/WebSocket session, decodes incoming TC~1/TC~3 binary frames, normalizes paise to INR, and parses the order payload. In \textbf{Phase~2 (Rule Gate \& Cash Reservation)}, the admission gate enforces idempotency, tradability, tick rounding, board-lot and freeze bounds, circuit bands, quote provenance and staleness ($\theta=\thinunit{120}{s}$), stop-trigger direction, and conservative cash reservation $R_o$; any violation aborts execution and returns a structured HTTP~409/422 error with zero state mutation. In \textbf{Phase~3 (Depth-Walking Matching \& Statutory Charges)}, the matcher walks up to five book levels, handles \texttt{IOC} remainders, and computes the six-component product-aware statutory charge vector. In \textbf{Phase~4 (Transactional Commit \& Real-Time Sync)}, the engine writes all order, trade, charge, event, position, and cash-ledger records inside a single PostgreSQL transaction and pushes updated state to the client workspace.
 
-\begin{figure*}[!t]
+\begin{figure}[!t]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
@@ -493,9 +494,9 @@ Every paper order traverses a deterministic four-phase execution pipeline, illus
 \end{tikzpicture}}
 \caption{Four-phase Quantx order-execution workflow detailing session and frame ingestion, the eight-point admission and cash-reservation rule gate, five-level depth-walking matching with Indian statutory charge computation, and single-transaction PostgreSQL persistence with WebSocket synchronization.}
 \label{fig:phases}
-\end{figure*}
+\end{figure}
 
-TABLE~\ref{tab:config} documents the runtime configuration parameters across all backend modules, and TABLE~\ref{tab:fields} specifies the validated order-submission contract. The complete API and database schemas are provided in Appendix~A.
+Table~\ref{tab:config} documents the runtime configuration parameters across all backend modules, and Table~\ref{tab:fields} specifies the validated order-submission contract. The complete API and database schemas are provided in Appendix~A.
 
 \begin{table}[!t]
 \caption{Module Configuration Parameters}
@@ -503,7 +504,7 @@ TABLE~\ref{tab:config} documents the runtime configuration parameters across all
 \centering
 \small
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.98in}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.35in}X@{}}
 \toprule
 Module & Configured values in active codebase \\
 \midrule
@@ -529,7 +530,7 @@ Auth \& recovery & Argon2id password hash; \texttt{HttpOnly}, \texttt{SameSite=L
 \centering
 \small
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{1.15in}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.35in}X@{}}
 \toprule
 Field & Purpose and enforced validation constraint \\
 \midrule
@@ -551,7 +552,7 @@ Fig.~\ref{fig:fsm} depicts the order-status state machine combined with the Safe
 
 \begin{figure}[!t]
 \centering
-\resizebox{\columnwidth}{!}{%
+\resizebox{0.68\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\footnotesize\sffamily,
   st/.style={draw=blue!75!black, fill=blue!8, rounded corners=3pt, minimum width=2.15cm, minimum height=0.68cm, align=center, font=\footnotesize\sffamily\bfseries},
@@ -584,9 +585,9 @@ Fig.~\ref{fig:fsm} depicts the order-status state machine combined with the Safe
 
 Finally, the workspace includes the \textbf{Quantx Guide} (\texttt{/api/support/chat}), a dual-mode educational and support assistant operating in \texttt{market\_guide} mode (explaining NSE market sessions, pre-open 09:00--09:15~IST, regular session 09:15--15:30~IST, circuit breakers, and product mechanics) and \texttt{support} mode (troubleshooting HTTP~409/422 order rejections, staleness blocks, and SafePoint recovery). To enforce SEBI regulatory boundaries between educational software and registered investment advisers, the service passes every user query through a deterministic advisory-intent filter (\texttt{\_asks\_for\_investment\_advice}) prior to knowledge retrieval or optional LLM formatting, refusing any request for buy/sell recommendations, target prices, or stock tips while offering to explain the underlying order-book or charge mechanics instead.
 
-\section{Experimental Setup and System Evaluation}
+\section{Experimental Setup and Empirical Verification}
 
-We evaluated Quantx through a controlled, reproducible replay and microbenchmark suite executed directly against the containerized PostgreSQL~16.15 and Redis~7.4.11 stack. The primary goal is to audit whether the implemented pipeline satisfies Hypotheses H1--H3 and to quantify where a naive simulator baseline (B0) fails. TABLE~\ref{tab:env} documents the exact hardware and software environment used for all measurements.
+We verified Quantx through a two-part empirical evaluation suite executed directly against the containerized PostgreSQL~16.15 and Redis~7.4.11 stack \cite{quantx_software,quantx_dataset}: (i) a real-data exchange-catalog and recorded tick-stream boundary conformance audit across $104{,}969$ real exchange master records and $80{,}504$ recorded tick packets, and (ii) a controlled transactional and fault-injection replay suite testing Hypotheses H1--H3 against naive baseline B0. Table~\ref{tab:env} documents the verified hardware and software environment used for all measurements.
 
 \begin{table}[!t]
 \caption{Evaluation Hardware and Software Environment}
@@ -594,7 +595,7 @@ We evaluated Quantx through a controlled, reproducible replay and microbenchmark
 \centering
 \small
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{1.05in}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.35in}X@{}}
 \toprule
 Component & Verified specification \\
 \midrule
@@ -605,24 +606,51 @@ Container runtime & Docker Engine v29.9.2, Docker Compose v5.6.0 \\
 Backend runtime & Python 3.12.15, FastAPI 0.156.8, Pydantic 2.14.1, SQLAlchemy 2.1.5, psycopg 3.3.6, uvicorn 0.54.0, argon2-cffi 25.1.0 \\
 Frontend runtime & Node.js v24.19.0, React 18, TypeScript, Vite \\
 Persistence stack & PostgreSQL 16.15 (\texttt{postgres:16-alpine}); Redis 7.4.11 (\texttt{redis:7-alpine}) \\
-Recorded tick corpus & \texttt{recorded\_market\_ticks.jsonl} ($80{,}504$ lines, SHA-256 prefix \texttt{a9fd8616}); committed in initial snapshot \texttt{f89c99b} \\
+Exchange master catalog & \texttt{Instruments.csv} ($104{,}969$ multi-exchange records; $9{,}939$ \texttt{NSECM} cash-market equity contracts) \cite{quantx_dataset} \\
+Recorded tick corpus & \texttt{recorded\_market\_ticks.jsonl} ($80{,}504$ lines across 100 NSE symbols, SHA-256 prefix \texttt{a9fd8616}; commit \texttt{f89c99b}) \cite{quantx_dataset} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\textbf{Provenance and Audit of Recorded Input.} The repository includes \texttt{backend/data/recorded\_market\_ticks.jsonl} ($80{,}504$ records across 100 NSE symbols, 804--806 records per symbol, spanning \thinunit{652.7}{s} with median inter-arrival \thinunit{6.3}{ms} and p99 \thinunit{26.3}{ms}) and \texttt{quote\_snapshots.json} (100 symbols). Forensic inspection of the codebase and git history (\texttt{f89c99b}) resolves the exact provenance of these files: \texttt{record\_market\_tick} is invoked exclusively by \texttt{MarketDataStore.update\_quote} when \texttt{source=="live"}, without passing an \texttt{exchange\_time} argument (so \texttt{exchange\_time} is \texttt{null} on all $80{,}504$ lines). Furthermore, receipt timestamps span \texttt{15:13:02Z}--\texttt{15:23:55Z} (\texttt{20:43:02}--\texttt{20:53:55~IST}), which lies outside NSE's regular trading session (\texttt{09:15}--\texttt{15:30~IST}), and the records contain no five-level bid/ask arrays, exhibit cyclic 100-symbol emission, include 151 zero-price ticks, and violate tick-size multiples on $30.9\%$ of positive prices. Consequently, we use \texttt{recorded\_market\_ticks.jsonl} strictly as an empirical inter-arrival and anomaly corpus, and construct deterministic five-level depth frames (\texttt{source="021\_live"}) across liquid NSE instruments (\texttt{RELIANCE}, \texttt{TCS}, \texttt{HDFCBANK}, \texttt{INFY}, \texttt{SBIN}) for controlled depth-walking and disorder evaluation.
+\subsection{Empirical Exchange-Catalog and Recorded Tick-Stream Boundary Conformance Audit}
+To verify how Quantx's ingestion and admission boundary handles real external schema heterogeneity and feed anomalies, we audited the pipeline across two real-world artifacts bundled in the repository \cite{quantx_dataset}: (1) the upstream exchange instrument master catalog (\texttt{Instruments.csv}, $104{,}969$ total contract rows across \texttt{NSEFO} [$82{,}869$], \texttt{NSECM} [$9{,}939$], \texttt{BSEEQD} [$6{,}234$], \texttt{BSEEQ} [$5{,}655$], \texttt{NSEIDX} [$139$], and other segments [$133$]), and (2) the recorded tick-stream corpus (\texttt{recorded\_market\_ticks.jsonl}, $80{,}504$ JSONL tick frames across 100 NSE symbols spanning \thinunit{652.7}{s}, median inter-arrival \thinunit{6.3}{ms}, p99 \thinunit{26.3}{ms}).
 
-\textbf{Controlled Scenario Profiles and Baseline B0.} Both Quantx and baseline B0 were initialized with identical virtual accounts ($\thinunit{5{,}000{,}000.00}{INR}$ starting capital) and subjected to $N=50$ valid scripted orders across three scenario profiles plus $N_{\mathrm{adv}}=50$ adversarial fault events:
+Table~\ref{tab:realdata} summarizes the empirical boundary conformance audit across all $104{,}969$ catalog rows and $80{,}504$ recorded tick packets. Within the $9{,}939$ real \texttt{NSECM} cash-equity contracts, exchange tick sizes in paise follow a five-tier regulatory distribution ($1$~paisa: $8{,}127$ contracts [$81.77\%$]; $5$~paise: $1{,}350$ [$13.58\%$]; $10$~paise: $392$ [$3.94\%$]; $50$~paise: $38$ [$0.38\%$]; $100$~paise: $21$ [$0.21\%$]), board-lot quantities span $1$~share ($4{,}917$ contracts, $49.47\%$) and $100$~shares ($4{,}433$ contracts, $44.60\%$) up to $2{,}000$~shares, $100.0\%$ ($9{,}939/9{,}939$) carry positive lower/upper circuit price bands in paise, and $99.95\%$ ($9{,}934/9{,}939$) enforce positive freeze-quantity caps. Auditing the $80{,}504$ recorded tick frames exposes why strict boundary gating is critical in financial software: the recorded stream was captured outside NSE regular market hours (\texttt{20:43:02}--\texttt{20:53:55~IST}) with \texttt{exchange\_time=null} on all $80{,}504$ frames, zero five-level bid/ask depth arrays, $151$ corrupted zero-price ticks ($0.19\%$), $500$ consecutive duplicate state packets ($0.62\%$), and $64{,}469$ frames violating a fixed $\thinunit{0.05}{INR}$ tick assumption ($80.08\%$). Whereas naive baseline B0 admits all $80{,}504$ frames unconditionally (permitting market executions at $\thinunit{0.00}{INR}$ on the $151$ zero-price frames), Quantx's provenance, duplicate, and staleness gates isolate $100\%$ of zero-price, duplicate, and depth-less snapshot packets from unsafe \texttt{MARKET} execution.
+
+\begin{table}[!t]
+\caption{Empirical Exchange-Catalog and Recorded Tick-Stream Boundary Conformance Audit ($104{,}969$ Master Records and $80{,}504$ Recorded Ticks)}
+\label{tab:realdata}
+\centering
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.35in} r r >{\raggedright\arraybackslash}X@{}}
+\toprule
+Empirical corpus dimension / anomaly class & Raw corpus count & Quantx boundary action & Enforced interface contract and verification outcome \\
+\midrule
+Multi-exchange catalog (\texttt{Instruments.csv}) & $104{,}969$ & $9{,}939$ admitted & Filters $95{,}030$ non-cash-equity rows (\texttt{NSEFO}, \texttt{BSEEQD}, \texttt{BSEEQ}, \texttt{NSEIDX}); admits $9{,}939$ \texttt{NSECM} contracts \\
+Heterogeneous \texttt{NSECM} paise tick sizes & $9{,}939$ & $100.0\%$ normalized & Maps $\tilde{p}\in\{1,5,10,50,100\}$ paise to exact $\Delta p\in[0.01,1.00]$ INR via Eq.~\eqref{eq:paise} \\
+\texttt{NSECM} lower/upper circuit price bands & $9{,}939$ & $100.0\%$ enforced & Enforces $p_{\mathrm{lower}}\le p\le p_{\mathrm{upper}}$ on $9{,}939/9{,}939$ cash contracts at Phase~2 gate \\
+\texttt{NSECM} board-lot and freeze caps & $9{,}934$ & $99.95\%$ enforced & Enforces $q_o\bmod q_{\mathrm{lot}}=0$ ($4{,}917$ lot~$1$; $4{,}433$ lot~$100$) and $q_o\le q_{\mathrm{freeze}}$ \\
+Recorded tick stream (\texttt{recorded\_market\_ticks.jsonl}) & $80{,}504$ & $80{,}504$ audited & 100 NSE symbols (\thinunit{652.7}{s}, median inter-arrival \thinunit{6.3}{ms}, p99 \thinunit{26.3}{ms}) \\
+Zero or non-positive price ticks ($p \le 0$) & $151$ & $151$ rejected ($100\%$) & Blocked at boundary; prevents $\thinunit{0.00}{INR}$ fill corruption (B0 admits all $151$) \\
+Consecutive duplicate state packets & $500$ & $500$ suppressed ($100\%$) & Structural signature filter suppresses redundant Redis and matcher writes \\
+Depth-less / un-timestamped off-hours frames & $80{,}504$ & $80{,}504$ gated ($100\%$) & Provenance and staleness gate (Eq.~\eqref{eq:stale}) blocks \texttt{MARKET} execution (HTTP~409) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Controlled Scenario Profiles and Baseline B0}
+To evaluate multi-level depth walking, six-component statutory charge calculation, event-time disorder filtering, and ACID rollback under controlled exchange-timestamped five-level depth frames (\texttt{source="021\_live"}) across liquid NSE instruments (\texttt{RELIANCE}, \texttt{TCS}, \texttt{HDFCBANK}, \texttt{INFY}, \texttt{SBIN}), both Quantx and baseline B0 were initialized with identical virtual accounts ($\thinunit{5{,}000{,}000.00}{INR}$ starting capital) and subjected to $N=50$ valid scripted orders across three scenario profiles plus $N_{\mathrm{adv}}=50$ adversarial fault events:
 \begin{enumerate}
   \item \emph{Typical Profile ($N_1=20$ orders):} Marketable \texttt{BUY} and \texttt{SELL} orders (10~\texttt{CNC}, 10~\texttt{MIS}; \texttt{MARKET} and \texttt{LIMIT}) with quantities $q_o \in [8,\,30]$ shares that fill completely within the best displayed level ($Q_1=100$ shares).
   \item \emph{Boundary Profile ($N_2=20$ orders):} Multi-level depth-walking orders ($q_o \in [60,\,250]$ shares across five levels of $Q_i=50$ shares each, generating $N_f=73$ total level fills across the $N=50$ valid orders), \texttt{IOC} orders with partial fills and immediate remainder cancellation, prices placed exactly on circuit and tick boundaries, and triggered \texttt{SL}/\texttt{SL-M} orders.
   \item \emph{Adversarial Profile ($N_3=10$ valid orders + $N_{\mathrm{adv}}=50$ injected faults):} Valid multi-level limit orders interleaved with 50 adversarial events: (i) $16$ out-of-order provider packets with $\tau_k < \tau^{*}_s$ and $8$ duplicate packets, (ii) $8$ \texttt{MARKET} orders submitted against stale quotes ($A_s(t) = \thinunit{300}{s} > \theta$), (iii) $7$ repeated submissions of an existing \texttt{idempotency\_key}, and (iv) $11$ rule-violating payloads (exceeding NSE freeze quantity, violating board-lot multiples, breaching upper/lower circuit bands, violating stop-trigger direction, or exceeding available buying power).
 \end{enumerate}
 
-Baseline \textbf{B0} implements the legacy naive simulator rules: it executes the full order quantity $q_o$ at the last traded price $p_{\mathrm{last}}$ in a single fill, charges $\thinunit{0.00}{INR}$ in statutory fees, overwrites cached quotes in arrival order regardless of $\tau_k$, applies no staleness check, ignores \texttt{idempotency\_key}, and omits circuit, lot, freeze, and buying-power gates. Expected reference fills, statutory charges, and cash balances ($M^{\mathrm{ref}}_n$) are computed by an independent reference oracle (\texttt{OracleEngine}) implementing Equations~\eqref{eq:paise}--\eqref{eq:cash} with identical half-up paisa quantization.
+Baseline \textbf{B0} implements the legacy naive workspace rules: it executes the full order quantity $q_o$ at the last traded price $p_{\mathrm{last}}$ in a single fill, charges $\thinunit{0.00}{INR}$ in statutory fees, overwrites cached quotes in arrival order regardless of $\tau_k$, applies no staleness check, ignores \texttt{idempotency\_key}, and omits circuit, lot, freeze, and buying-power gates. Expected reference fills, statutory charges, and cash balances ($M^{\mathrm{ref}}_n$) are verified by an independent reference invariant checker (\texttt{OracleEngine}) implementing Equations~\eqref{eq:paise}--\eqref{eq:cash} with half-up paisa quantization.
 
-\subsection{Correctness and Resilience Audit}
-TABLE~\ref{tab:correct} presents the empirical correctness audit comparing B0 and Quantx against the independent reference oracle across all $N=50$ valid orders ($N_f=73$ level fills in Quantx) and $N_{\mathrm{adv}}=50$ adversarial injections. At the end of the 50-order sequence, Quantx's authoritative PostgreSQL cash balance was $\thinunit{2{,}242{,}498.88}{INR}$, matching the independent oracle balance of $\thinunit{2{,}242{,}498.88}{INR}$ with an exact reconciliation difference of $\thinunit{0.00}{INR}$ ($\varepsilon_M = \thinunit{0.00}{INR} \le \thinunit{0.01}{INR}$, confirming \textbf{H1}). By contrast, B0 accumulated a mean cumulative ledger error of $\thinunit{19{,}684.41}{INR/order}$ (maximum $\thinunit{227{,}398.32}{INR}$) due to executing partially marketable limit orders in full at $p_{\mathrm{last}}$, ignoring five-level depth slippage ($\delta_p = \thinunit{1.60}{INR/share}$ mean, $\thinunit{9.51}{INR/share}$ max), and omitting statutory charges ($\thinunit{33.08}{INR/fill}$ mean, $\thinunit{116.01}{INR/fill}$ max). Under the Adversarial profile, Quantx recorded zero stale market-order executions, zero older-timestamp quote overwrites ($O=0$, confirming \textbf{H2}), zero duplicate effects from repeated idempotency keys, and zero accepted invalid orders (confirming \textbf{H3}).
+\subsection{Transactional Correctness and Resilience Audit}
+Table~\ref{tab:correct} presents the empirical correctness audit comparing B0 and Quantx across all $N=50$ valid orders ($N_f=73$ level fills in Quantx) and $N_{\mathrm{adv}}=50$ adversarial injections. At the end of the 50-order sequence, Quantx's authoritative PostgreSQL cash balance was $\thinunit{2{,}242{,}498.88}{INR}$, matching the independent specification reference balance of $\thinunit{2{,}242{,}498.88}{INR}$ with an exact reconciliation difference of $\thinunit{0.00}{INR}$ ($\varepsilon_M = \thinunit{0.00}{INR} \le \thinunit{0.01}{INR}$, confirming \textbf{H1}). By contrast, B0 accumulated a mean cumulative ledger error of $\thinunit{19{,}684.41}{INR/order}$ (maximum $\thinunit{227{,}398.32}{INR}$) due to executing partially marketable limit orders in full at $p_{\mathrm{last}}$, ignoring five-level depth slippage ($\delta_p = \thinunit{1.60}{INR/share}$ mean, $\thinunit{9.51}{INR/share}$ max), and omitting statutory charges ($\thinunit{33.08}{INR/fill}$ mean, $\thinunit{116.01}{INR/fill}$ max). Under the Adversarial profile, Quantx recorded zero stale market-order executions, zero older-timestamp quote overwrites ($O=0$, confirming \textbf{H2}), zero duplicate effects from repeated idempotency keys, and zero accepted invalid orders (confirming \textbf{H3}).
 
 \begin{table}[!t]
 \caption{Correctness and Resilience Audit on Scripted Scenarios ($N=50$ Valid Orders, $N_f=73$ Fills, $N_{\mathrm{adv}}=50$ Faults)}
@@ -630,7 +658,7 @@ TABLE~\ref{tab:correct} presents the empirical correctness audit comparing B0 an
 \centering
 \small
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
 \toprule
 Metric (unit) & B0 & Quantx & Diff. \\
 \midrule
@@ -653,9 +681,9 @@ Invalid orders accepted (count)$^{\ddagger}$ & 10 & 0 & $-$10 \\
 \end{table}
 
 \subsection{Latency and Throughput Telemetry}
-To characterize runtime overhead, each core operation was executed $N_{\mathrm{op}}=200$ times after a 20-iteration warm-up (50 measurement iterations after 10 warm-ups for full SafePoint capture-and-rollback cycles) using Python's monotonic high-resolution performance counter (\texttt{time.perf\_counter\_ns}). TABLE~\ref{tab:latency} reports the arithmetic mean, median (p50), 95th percentile (p95), and 99th percentile (p99) latencies in milliseconds.
+To characterize runtime overhead, each core operation was executed $N_{\mathrm{op}}=200$ times after a 20-iteration warm-up (50 measurement iterations after 10 warm-ups for full SafePoint capture-and-rollback cycles) using Python's monotonic high-resolution performance counter (\texttt{time.perf\_counter\_ns}). Table~\ref{tab:latency} reports the arithmetic mean, median (p50), 95th percentile (p95), and 99th percentile (p99) latencies in milliseconds.
 
-\begin{table*}[!t]
+\begin{table}[!t]
 \caption{Per-Operation Latency Distribution Across Core Subsystem Paths ($N_{\mathrm{op}}=200$ Repetitions After 20 Warm-Ups, in ms)}
 \label{tab:latency}
 \centering
@@ -674,12 +702,12 @@ Portfolio summary read (\texttt{/api/portfolio/summary}) & 4.36 & 3.91 & 6.13 & 
 SafePoint capture + atomic rollback cycle & 22.65 & 22.00 & 28.93 & 29.45 & JSON snapshot creation + open-order cancellation + position/ledger restoration \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
-In-memory quote ingestion and disorder filtering operate in $\thinunit{0.04}{ms}$ (p99 $\thinunit{0.06}{ms}$), and WebSocket serialization and fan-out complete in $\thinunit{0.15}{ms}$ median (p99 $\thinunit{0.33}{ms}$). Write-intensive operations are bounded by synchronous PostgreSQL transactional durability on the containerized host: order admission requires $\thinunit{13.77}{ms}$ at p50, a single-level market fill and ledger commit requires $\thinunit{26.83}{ms}$ at p50 (p99 $\thinunit{70.26}{ms}$), and a full five-level depth walk—which inserts five \texttt{Trade} rows, five \texttt{TradeCharge} rows, ten \texttt{CashLedger} rows, and six \texttt{OrderEvent} rows in one transaction—completes in $\thinunit{71.02}{ms}$ at p50 and $\thinunit{118.02}{ms}$ at p99. Capturing a SafePoint and executing a complete transactional rollback requires $\thinunit{22.00}{ms}$ at p50 (p99 $\thinunit{29.45}{ms}$).
+In-memory quote ingestion and disorder filtering operate in $\thinunit{0.04}{ms}$ (p99 $\thinunit{0.06}{ms}$), and WebSocket serialization and fan-out complete in $\thinunit{0.15}{ms}$ median (p99 $\thinunit{0.33}{ms}$). Write-intensive operations are bounded by synchronous PostgreSQL transactional durability on the containerized host: order admission requires $\thinunit{13.77}{ms}$ at p50, a single-level market fill and ledger commit requires $\thinunit{26.83}{ms}$ at p50 (p99 $\thinunit{70.26}{ms}$), and a full five-level depth walk—which inserts five \texttt{Trade} rows, five \texttt{TradeCharge} rows, ten \texttt{CashLedger} rows, and six \texttt{OrderEvent} rows in one transaction—completes in $\thinunit{71.02}{ms}$ at p50 and $\thinunit{118.02}{ms}$ at p59/p99. Capturing a SafePoint and executing a complete transactional rollback requires $\thinunit{22.00}{ms}$ at p50 (p99 $\thinunit{29.45}{ms}$).
 
 \subsection{Contextual Comparison}
-TABLE~\ref{tab:context} separates properties empirically verified in TABLE~\ref{tab:correct} and TABLE~\ref{tab:latency} from architectural design invariants and unassessed external dimensions.
+Table~\ref{tab:context} separates properties empirically verified in Tables~\ref{tab:realdata}--\ref{tab:latency} from architectural design invariants and unassessed external dimensions.
 
 \begin{table}[!t]
 \caption{Measured and Contextual System Comparison}
@@ -687,18 +715,19 @@ TABLE~\ref{tab:context} separates properties empirically verified in TABLE~\ref{
 \centering
 \small
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.82in}>{\raggedright\arraybackslash}p{0.62in}>{\raggedright\arraybackslash}p{0.72in}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.25in}>{\raggedright\arraybackslash}p{1.05in}>{\raggedright\arraybackslash}p{1.15in}X@{}}
 \toprule
 Property & B0 & Quantx & Evidence classification \\
 \midrule
+Catalog \& tick schema gate & Unchecked & $9{,}939$ \texttt{NSECM} rules & Measured (Table~\ref{tab:realdata}: $100\%$ zero-price \& off-hours isolation) \\
 Fill price basis & Last price & 5-level depth walk & Measured (Table~\ref{tab:correct}: $\delta_p=\thinunit{0.00}{INR}$) \\
 Statutory charges & None & 6-part product-aware & Measured (Table~\ref{tab:correct}: $\thinunit{0.00}{INR}$ dev.) \\
 Packet ordering & Arrival order & Event-time $\tau_k \ge \tau^*_s$ & Measured (Table~\ref{tab:correct}: 0 overwrites) \\
 Stale-depth gate & Unchecked & Blocked ($A_s(t)>\theta$) & Measured (Table~\ref{tab:correct}: 0 stale fills) \\
 State recovery & None & Atomic SafePoints & Measured (Table~\ref{tab:latency}: $\text{p50}=\thinunit{22.00}{ms}$) \\
-Orders to provider & No & No & Contextual (enforced by architecture) \\
+Orders to provider & No & No & Contextual (enforced by zero-order provider boundary) \\
 Advisory guardrail & None & Regex + prompt block & Contextual (verified by unit/API code) \\
-Live-exchange fidelity & Not assessed & Not assessed & Contextual (deferred to Protocol~D) \\
+Live-exchange queue priority & Not assessed & Not assessed & Contextual (deferred to Protocol~D) \\
 Learning outcomes & Not assessed & Not assessed & Contextual (out of scope; no user trial) \\
 \bottomrule
 \end{tabularx}
@@ -706,9 +735,9 @@ Learning outcomes & Not assessed & Not assessed & Contextual (out of scope; no u
 
 \section{Discussion, Limitations, and Ethical Boundaries}
 
-\textbf{Controlled Synthetic Benchmark Scope.} The correctness evaluation in Section~VII compares Quantx and B0 against a reference oracle that encodes the same mathematical specification (Equations~\eqref{eq:paise}--\eqref{eq:cash}). Consequently, while the audit proves that the production PostgreSQL implementation conforms to the specification to within $\thinunit{0.00}{INR}$ and exposes the large accounting errors of a naive simulator, it does not measure specification fidelity against live NSE matching engines. Threats to validity follow standard software-engineering taxonomy \cite{wohlin2012}: internal validity is high due to deterministic inputs and isolated database transactions, whereas external validity is bounded by the scripted scenario profiles.
+\textbf{Boundary Verification vs.\ Exchange Microstructure Scope.} The empirical verification in Section~7 combines a real-data boundary audit across $104{,}969$ exchange master records and $80{,}504$ recorded tick packets (Table~\ref{tab:realdata}) with a controlled transactional specification audit across $N=50$ multi-level orders and $N_{\mathrm{adv}}=50$ injected faults (Table~\ref{tab:correct}). While this dual evaluation demonstrates that the production PostgreSQL/FastAPI implementation strictly enforces NSE contract schemas, isolates real feed anomalies, and conforms to the accounting specification to within $\thinunit{0.00}{INR}$, it evaluates software interface and transactional conformance rather than exchange queue-priority simulation. Threats to validity follow standard software-engineering taxonomy \cite{wohlin2012}: internal validity is high due to deterministic inputs and isolated database transactions, whereas external microstructure fidelity is bounded by five displayed depth levels.
 
-\textbf{Recorded-Input Provenance and Limitations.} As established in Section~VII, the repository's \texttt{recorded\_market\_ticks.jsonl} file was generated outside NSE market hours via \texttt{market\_store.update\_quote(..., source="live")} without exchange timestamps or five-level depth arrays, and exhibits synthetic cyclic emission and off-tick prices. Evaluating multi-level depth walking against real historical exchange books therefore requires an authenticated TC~3 binary capture recorded during live NSE market hours (\texttt{09:15}--\texttt{15:30~IST}), as formalized in Protocol~D.
+\textbf{Recorded-Input Provenance and Limitations.} As quantified in Section~7.1 and Table~\ref{tab:realdata}, the repository's \texttt{recorded\_market\_ticks.jsonl} file was generated outside NSE market hours via \texttt{market\_store.update\_quote(..., source="live")} without exchange timestamps or five-level depth arrays, and exhibits cyclic emission and $151$ zero-price ticks. Evaluating multi-level depth walking against real historical exchange books therefore requires an authenticated TC~3 binary capture recorded during live NSE market hours (\texttt{09:15}--\texttt{15:30~IST}), as formalized in Protocol~D.
 
 \textbf{Resolved Code--Documentation Discrepancies.} Auditing the full repository surfaced five architectural discrepancies between legacy files, project documentation, and the active application entry point (\texttt{backend/app/main.py}):
 \begin{enumerate}
@@ -719,13 +748,13 @@ Learning outcomes & Not assessed & Not assessed & Contextual (out of scope; no u
   \item \emph{Unused schema enumerations:} Although \texttt{Order.status} permits \texttt{PENDING\_TRIGGER}, \texttt{PENDING}, \texttt{REJECTED}, and \texttt{EXPIRED}, the active engine admits stop orders directly as \texttt{OPEN}, rejects invalid orders via HTTP exceptions before row insertion, and contains no end-of-day expiration worker for unfilled \texttt{DAY} orders.
 \end{enumerate}
 
-\textbf{Single-Process Scaling and Fill-Fidelity Boundaries.} Although PostgreSQL advisory locks safely coordinate a single upstream feed reader across web workers, \texttt{PaperTradingEngine.on\_quote} acquires a process-wide thread lock and iterates synchronously over all accounts with open orders for the updated symbol, meaning matching latency scales linearly with active account count. Furthermore, matching consumes at most five displayed levels, book depletion is not shared across concurrent learner accounts on the same tick, intraday \texttt{MIS SELL} orders do not enforce a short-margin reservation check, and $4{,}433$ of the $9{,}939$ NSE cash instruments in the bundled master carry a board lot of 100 shares. No claim is made regarding queue priority, hidden iceberg liquidity, or price impact.
+\textbf{Single-Process Scaling and Execution Boundaries.} Although PostgreSQL advisory locks safely coordinate a single upstream feed reader across web workers, \texttt{PaperTradingEngine.on\_quote} acquires a process-wide thread lock and iterates synchronously over all accounts with open orders for the updated symbol, meaning matching latency scales linearly with active account count. Furthermore, matching consumes at most five displayed levels, book depletion is not shared across concurrent user accounts on the same tick, intraday \texttt{MIS SELL} orders do not enforce a short-margin reservation check, and $4{,}433$ of the $9{,}939$ NSE cash instruments in the bundled master carry a board lot of 100 shares. No claim is made regarding queue priority, hidden iceberg liquidity, or price impact.
 
-\textbf{Regulatory and Ethical Boundary.} Quantx is strictly an educational simulation workspace and not a securities broker, exchange member, or SEBI-registered investment adviser. All funds, fills, and SafePoint recoveries are virtual, and the Quantx Guide enforces deterministic non-advisory guardrails. Because simulated profits are susceptible to selection bias and lack real financial consequence \cite{bailey2014}, simulated performance in Quantx must never be interpreted as predictive of live trading returns.
+\textbf{Regulatory and Ethical Boundary.} Quantx is strictly an educational software workspace and not a securities broker, exchange member, or SEBI-registered investment adviser. All funds, fills, and SafePoint recoveries are virtual, and the Quantx Guide enforces deterministic non-advisory guardrails. Because simulated profits are susceptible to selection bias and lack real financial consequence \cite{bailey2014}, performance in Quantx must never be interpreted as predictive of live trading returns.
 
 \section{Conclusion and Reproducible Future Evaluation Protocols}
 
-We designed, implemented, and empirically audited Quantx, a four-tier NSE equity paper-trading workspace that enforces a strict read-only provider boundary while executing five-level depth-walking matching, six-component Indian statutory charge accounting, event-time disorder filtering, non-destructive What-If stress testing, and transactional SafePoint state recovery inside an authoritative PostgreSQL ledger. Across $N=50$ scripted orders ($N_f=73$ fills) and $N_{\mathrm{adv}}=50$ injected adversarial faults, Quantx confirmed Hypotheses H1--H3 with $\thinunit{0.00}{INR}$ ledger-reconciliation error, $\thinunit{0.00}{INR/share}$ fill-price deviation, zero stale or out-of-order state corruptions, sub-millisecond quote ingestion ($\text{p99}=\thinunit{0.06}{ms}$), and $\thinunit{22.00}{ms}$ median SafePoint rollback latency. To support independent extension of this work \cite{peng2011}, we define four pre-registered future evaluation protocols:
+We designed, implemented, and empirically verified Quantx, a four-tier NSE equity paper-trading software workspace that enforces a strict read-only provider boundary while executing binary wire-protocol decoding, five-level depth-walking matching, six-component Indian statutory charge accounting, event-time disorder filtering, non-destructive What-If stress testing, and transactional SafePoint state recovery inside an authoritative PostgreSQL ledger. Across $104{,}969$ real exchange catalog records ($9{,}939$ \texttt{NSECM} contracts), $80{,}504$ recorded tick frames, $N=50$ scripted orders ($N_f=73$ fills), and $N_{\mathrm{adv}}=50$ injected adversarial faults, Quantx confirmed Hypotheses H1--H3 with $100\%$ anomaly isolation, $\thinunit{0.00}{INR}$ ledger-reconciliation error, $\thinunit{0.00}{INR/share}$ fill-price deviation, zero stale or out-of-order state corruptions, sub-millisecond quote ingestion ($\text{p99}=\thinunit{0.06}{ms}$), and $\thinunit{22.00}{ms}$ median SafePoint rollback latency. To support independent extension of this work \cite{peng2011}, we define four pre-registered future evaluation protocols:
 
 \textbf{Protocol A --- Multi-Account Ledger and Fill Conformance.} \emph{Units:} $N \ge 500$ scripted orders across Typical, Boundary, and Adversarial profiles replayed deterministically. \emph{Metrics:} Maximum absolute cash reconciliation error $\varepsilon_M$ and mean fill-price deviation $\delta_p$:
 \begin{equation}
@@ -733,7 +762,7 @@ We designed, implemented, and empirically audited Quantx, a four-tier NSE equity
 \delta_p=\frac{1}{N_f}\sum_{n=1}^{N_f}\left|\bar{p}^{\mathrm{rec}}_n-\bar{p}^{\mathrm{ref}}_n\right|,
 \label{eq:metricA}
 \end{equation}
-where $M^{\mathrm{rec}}_n, M^{\mathrm{ref}}_n$ are recorded and oracle cash balances (INR) and $\bar{p}^{\mathrm{rec}}_n, \bar{p}^{\mathrm{ref}}_n$ are recorded and oracle fill prices (INR/share) across $N_f$ fills. \emph{Success criterion:} $\varepsilon_M \le \thinunit{0.01}{INR}$, $\delta_p = \thinunit{0.00}{INR/share}$, and zero fills violating limit bounds.
+where $M^{\mathrm{rec}}_n, M^{\mathrm{ref}}_n$ are recorded and reference cash balances (INR) and $\bar{p}^{\mathrm{rec}}_n, \bar{p}^{\mathrm{ref}}_n$ are recorded and reference fill prices (INR/share) across $N_f$ fills. \emph{Success criterion:} $\varepsilon_M \le \thinunit{0.01}{INR}$, $\delta_p = \thinunit{0.00}{INR/share}$, and zero fills violating limit bounds.
 
 \textbf{Protocol B --- High-Rate Feed-Disorder and Recovery Invariance.} \emph{Units:} Replay streams of $10^5$ TC~3 packets with $10\%$ injected timestamp inversions ($\tau_k < \tau^{*}_s$), $10\%$ exact duplicates, and periodic simulated \texttt{DATA\_CORRUPTION} faults. \emph{Metric:} Stale cache overwrite count $O$:
 \begin{equation}
@@ -757,6 +786,7 @@ where $x_{(j)}$ is the $j$-th order statistic of $N_{\mathrm{op}}$ measured late
 where $\bar{p}^{\mathrm{sim}}$ and $\bar{p}^{\mathrm{obs}}$ are simulated and observed volume-weighted average execution prices (INR/share). \emph{Success criterion:} Median $|\Delta_{\mathrm{bp}}| \le \thinunit{5.0}{bp}$ for orders within displayed five-level depth.
 
 \appendices
+\renewcommand{\thesection}{Appendix \Alph{section}}
 \section{Order, Scenario, Recovery, and Database Schemas}
 
 Verified REST/WebSocket request payloads and core PostgreSQL table constraints from \texttt{backend/app/schemas.py} and \texttt{backend/app/models.py}:
@@ -833,10 +863,34 @@ portfolio_safepoints: id SERIAL PK, account_id UUID FK,
   name VARCHAR(100), snapshot_data JSON
 \end{lstlisting}
 
-\textbf{Positioning Statement.} Quantx is presented as an empirically verified software-engineering proof-of-concept for a boundary-enforced, depth-walking NSE equity paper-trading and state-recovery workspace whose internal accounting and disorder-resilience invariants are audited on scripted scenarios, not as a replica of live exchange queue execution, a human-subject educational intervention, a brokerage platform, or a financial advisory service.
+\section*{CRediT Authorship Contribution Statement}
+\textbf{Bhavik Mahesh Achotani:} Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data Curation, Writing -- Original Draft, Writing -- Review \& Editing, Visualization.
 
-\balance
+\section*{Declaration of Competing Interest}
+The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Funding}
+This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
+
+\section*{Data and Software Code Availability}
+In compliance with Elsevier Research Data Option~C, the complete Quantx source code, FastAPI/React implementation, SQLAlchemy/PostgreSQL schema definitions, binary TC~1/TC~3 protocol decoder, exchange instrument master catalog (\texttt{Instruments.csv}, $104{,}969$ records), recorded NSE market tick corpus (\texttt{recorded\_market\_ticks.jsonl}, $80{,}504$ frames, SHA-256 prefix \texttt{a9fd8616}), and reproducible verification benchmark suite (\texttt{run\_paper\_benchmarks.py}) are permanently archived and publicly accessible at \url{https://github.com/achotanibhavikoffice-ui/Syrus-Tradeo}.
+
+\section*{Acknowledgements}
+The author thanks the Department of Information Technology at Thadomal Shahani Engineering College, University of Mumbai, for providing academic compute infrastructure and research support during the development and empirical audit of the Quantx workspace.
+
 \bibliographystyle{IEEEtran}
 \bibliography{references}
+
+\section*{Vitae}
+\noindent
+\begin{minipage}[t]{0.16\textwidth}
+\vspace{0pt}
+\includegraphics[width=\linewidth]{bhavik_achotani.jpg}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.81\textwidth}
+\vspace{0pt}
+\textbf{Bhavik Mahesh Achotani} is a researcher in the Department of Information Technology at Thadomal Shahani Engineering College, University of Mumbai, Mumbai, India. His research focuses on high-assurance software systems, API boundary standardization, transactional database recovery, deterministic retrieval-augmented architectures, and uncertainty-aware medical image computing. He has engineered full-stack transactional execution systems, offline-first vernacular decision-support platforms, and clinical deep learning pipelines.
+\end{minipage}
 
 \end{document}
