@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql&logoColor=white" alt="PostgreSQL">
     <img src="https://img.shields.io/badge/Market-INR%20%7C%20NSE%20%7C%20BSE-087f72" alt="Indian market">
     <a href="https://huggingface.co/spaces/achotanibhavikoffice-ui/quantx-demo"><img src="https://img.shields.io/badge/Live%20Demo-Hugging%20Face%20Spaces-FFD21E?logo=huggingface&logoColor=black" alt="Live Demo on Hugging Face"></a>
-    <img src="https://img.shields.io/badge/Elsevier%20Q1%20Scopus-Simulation%20Modelling%20Practice%20and%20Theory%20(ID%3A%20DECSUP--D--26--2666)-FF6C00" alt="Under Review at Decision Support Systems (DECSUP-D-26-04166)">
+    <img src="https://img.shields.io/badge/Elsevier%20Q1%20Scopus-Simulation%20Modelling%20Practice%20and%20Theory%20(ID%3A%20COMPELECENG--D--26--2666)-FF6C00" alt="Under Review at Computers and Electrical Engineering (COMPELECENG-D-26-12126)">
     <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7670718"><img src="https://img.shields.io/badge/SSRN-Preprint%207670718-blue" alt="SSRN: 7670718"></a>
     <a href="https://orcid.org/0009-0006-3098-6175"><img src="https://img.shields.io/badge/ORCID-0009--0006--3098--6175-A6CE39?logo=orcid&logoColor=white" alt="ORCID: 0009-0006-3098-6175"></a>
     <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License"></a>
@@ -15,6 +15,21 @@
     <a href="#-contributing"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
   </p>
 </div>
+
+> ### ⚡ 2-Click Interactive Market Simulation & Execution Showcase
+> **Direct Cloud Webapp:** [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/achotanibhavikoffice-ui/quantx-demo)  
+> *Live in browser: Test high-frequency NSE market data feed simulation, 5-level limit-order-book depth-walking matching engine, and atomic SafePoint state rollbacks with zero financial risk.*
+>
+> ```text
+> ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+> │ [QUANTX SIMULATION ENGINE] NSE Equity Feed: RELIANCE / INFY │ Matching Latency: 0.04ms Big-Endian Ingest│
+> ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+> │ [Stage 1: Limit Order Book]  5-Level Depth-Walking Matcher │ IOC Partial Fills │ 6-Part Statutory Tax  │
+> │ [Stage 2: SafePoint Engine]  PostgreSQL ACID State Rollback: 22.0ms p50 │ 0.00 INR Ledger Drift        │
+> │ [Stage 3: What-If Stress Lab] 50 Adversarial Network Injections │ 73 Multi-Level Fills Reconciled      │
+> └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+> ```
+> **1-Click Local Run:** `docker compose up --build` (or explore via [Hugging Face Spaces](https://huggingface.co/spaces/achotanibhavikoffice-ui/quantx-demo))
 
 **Quantx** is an Indian-equity paper-trading workspace for learning how market data, order execution, fees, cash, positions, and profit and loss fit together. Users can explore listed instruments, practise simulated orders, review portfolio scenarios, and learn market concepts without risking real funds.
 
